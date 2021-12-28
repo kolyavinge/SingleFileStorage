@@ -5,7 +5,7 @@ namespace SingleFileStorage.Core
 {
     class SegmentIterator
     {
-        public delegate void IterateDelegate(Segment currentSegment, int segmentAvailableBytes, long totalIteratedBytes);
+        public delegate void IterationDelegate(Segment currentSegment, int segmentAvailableBytes, long totalIteratedBytes);
 
         private readonly IStorageFileStream _storageFileStream;
         private readonly Segment _startSegment;
@@ -32,7 +32,7 @@ namespace SingleFileStorage.Core
             _bytesCount = bytesCount;
         }
 
-        public void Iterate(IterateDelegate iterateFunc)
+        public void Iterate(IterationDelegate iterationFunc)
         {
             TotalIteratedBytes = 0;
             RemainingBytes = _bytesCount;
@@ -44,14 +44,14 @@ namespace SingleFileStorage.Core
                 {
                     segmentAvailableBytes = (int)RemainingBytes;
                     RemainingBytes -= segmentAvailableBytes;
-                    iterateFunc(currentSegment, segmentAvailableBytes, TotalIteratedBytes);
+                    iterationFunc(currentSegment, segmentAvailableBytes, TotalIteratedBytes);
                     TotalIteratedBytes += segmentAvailableBytes;
                 }
                 else
                 {
                     segmentAvailableBytes = (int)(currentSegment.DataEndPosition - _storageFileStream.Position);
                     RemainingBytes -= segmentAvailableBytes;
-                    iterateFunc(currentSegment, segmentAvailableBytes, TotalIteratedBytes);
+                    iterationFunc(currentSegment, segmentAvailableBytes, TotalIteratedBytes);
                     TotalIteratedBytes += segmentAvailableBytes;
                     if (currentSegment.NextSegmentIndex != Segment.NullValue)
                     {

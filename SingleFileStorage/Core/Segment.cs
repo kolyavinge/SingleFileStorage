@@ -111,9 +111,6 @@ namespace SingleFileStorage.Core
                 segment.DataLength = SizeConstants.SegmentData;
             }
             segment.StartPosition = SizeConstants.StorageDescription + SizeConstants.Segment * segmentIndex;
-            segment.EndPosition = segment.StartPosition + SizeConstants.Segment;
-            segment.DataStartPosition = segment.StartPosition + SizeConstants.SegmentState + SizeConstants.SegmentNextIndexOrDataLength;
-            segment.DataEndPosition = segment.DataStartPosition + SizeConstants.SegmentData;
 
             return segment;
         }
@@ -123,8 +120,9 @@ namespace SingleFileStorage.Core
         public uint NextSegmentIndex;
         public uint DataLength;
         public long StartPosition;
-        public long EndPosition;
-        public long DataStartPosition;
-        public long DataEndPosition;
+
+        public long EndPosition => StartPosition + SizeConstants.Segment;
+        public long DataStartPosition => StartPosition + SizeConstants.SegmentState + SizeConstants.SegmentNextIndexOrDataLength;
+        public long DataEndPosition => DataStartPosition + SizeConstants.SegmentData;
     }
 }

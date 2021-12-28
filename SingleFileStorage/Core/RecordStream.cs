@@ -17,7 +17,7 @@ namespace SingleFileStorage.Core
 
         public override bool CanSeek => true;
 
-        public override long Length => throw new NotImplementedException();
+        public override long Length => _recordDescription.RecordLength;
 
         public override long Position
         {
@@ -60,14 +60,20 @@ namespace SingleFileStorage.Core
             {
                 _storageFileStream.WriteByteArray(buffer, offset + (int)totalIteratedBytes, segmentAvailableBytes);
             });
-            _position += segmentIterator.TotalIteratedBytes + segmentIterator.RemainingBytes;
             _currentSegment = segmentIterator.LastIteratedSegment;
+            _position += segmentIterator.TotalIteratedBytes + segmentIterator.RemainingBytes;
             if (segmentIterator.RemainingBytes == 0)
             {
                 var currentStorageFileStreamPosition = _storageFileStream.Position;
                 _currentSegment.DataLength = (uint)(_storageFileStream.Position - _currentSegment.DataStartPosition);
                 _storageFileStream.Seek(_currentSegment.StartPosition + SizeConstants.SegmentState, SeekOrigin.Begin);
                 Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, _currentSegment.DataLength);
+                if (_position > _recordDescription.RecordLength)
+                {
+                    _recordDescription.RecordLength = (uint)_position;
+                    _storageFileStream.Seek(_recordDescription.RecordLengthStartPosition, SeekOrigin.Begin);
+                    RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
+                }
                 _storageFileStream.Seek(currentStorageFileStreamPosition, SeekOrigin.Begin);
             }
             else
@@ -93,18 +99,14 @@ namespace SingleFileStorage.Core
                 Segment.AppendSegment(_storageFileStream, SegmentState.UsedAndLast, (uint)remainingBytes, buffer, currentOffset, (int)remainingBytes);
                 _storageFileStream.Seek(-SizeConstants.Segment, SeekOrigin.End);
                 _currentSegment = Segment.CreateFromSegmentIndex(_storageFileStream, lastSegmentIndex);
-                _storageFileStream.Seek((int)remainingBytes, SeekOrigin.Current);
+                var currentStorageFileStreamPosition = _currentSegment.DataStartPosition + (int)remainingBytes;
+                _recordDescription.LastSegmentIndex = _currentSegment.Index;
+                _recordDescription.RecordLength = (uint)_position;
+                _storageFileStream.Seek(_recordDescription.LastSegmentIndexPosition, SeekOrigin.Begin);
+                RecordDescription.WriteLastSegmentIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
+                RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
+                _storageFileStream.Seek(currentStorageFileStreamPosition, SeekOrigin.Begin);
             }
-            UpdateRecordDescription();
-        }
-
-        private void UpdateRecordDescription()
-        {
-            var currentStorageFileStreamPosition = _storageFileStream.Position;
-            _storageFileStream.Seek(_recordDescription.RecordLengthStartPosition, SeekOrigin.Begin);
-            RecordDescription.WriteLastSegmentIndex(_storageFileStream, _currentSegment.Index);
-            RecordDescription.WriteLength(_storageFileStream, _currentSegment.DataLength);
-            _storageFileStream.Seek(currentStorageFileStreamPosition, SeekOrigin.Begin);
         }
 
         public override long Seek(long offset, SeekOrigin origin)
