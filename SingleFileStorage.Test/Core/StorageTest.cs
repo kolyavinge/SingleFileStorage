@@ -259,5 +259,132 @@ namespace SingleFileStorage.Test.Core
             Assert.IsTrue(ByteArray.IsEqual(record1Content, record1ContentReadResult));
             Assert.IsTrue(ByteArray.IsEqual(record2Content, record2ContentReadResult));
         }
+
+        [Test]
+        public void TwoRecord_TwoWriteOperations()
+        {
+            var record1 = CreateEmptyRecord("record 1");
+            var record2 = CreateEmptyRecord("record 2");
+            var record1Content = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
+            var record2Content = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
+            record1.Write(record1Content, 0, SizeConstants.SegmentData);
+            record2.Write(record2Content, 0, SizeConstants.SegmentData);
+            record1.Write(record1Content, SizeConstants.SegmentData, SizeConstants.SegmentData);
+            record2.Write(record2Content, SizeConstants.SegmentData, SizeConstants.SegmentData);
+            record1.Write(record1Content, 2 * SizeConstants.SegmentData, SizeConstants.SegmentData / 2);
+            record2.Write(record2Content, 2 * SizeConstants.SegmentData, SizeConstants.SegmentData / 2);
+            var record1ContentReadResult = new byte[record1Content.Length];
+            var record2ContentReadResult = new byte[record2Content.Length];
+            record1.Seek(0, SeekOrigin.Begin);
+            record1.Read(record1ContentReadResult, 0, record1ContentReadResult.Length);
+            record2.Seek(0, SeekOrigin.Begin);
+            record2.Read(record2ContentReadResult, 0, record2ContentReadResult.Length);
+            Assert.IsTrue(ByteArray.IsEqual(record1Content, record1ContentReadResult));
+            Assert.IsTrue(ByteArray.IsEqual(record2Content, record2ContentReadResult));
+        }
+
+        [Test]
+        public void SeekPosition()
+        {
+            var empty = GetEmptyArray(2 * SizeConstants.SegmentData);
+            var record = CreateRecordWithContent("record", empty);
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
+
+            record.Position = SizeConstants.SegmentData / 2;
+            record.Write(recordContent, SizeConstants.SegmentData / 2, SizeConstants.SegmentData / 2);
+
+            record.Position = 0;
+            record.Write(recordContent, 0, SizeConstants.SegmentData / 2);
+
+            record.Position = SizeConstants.SegmentData + SizeConstants.SegmentData / 2;
+            record.Write(recordContent, SizeConstants.SegmentData + SizeConstants.SegmentData / 2, SizeConstants.SegmentData / 2);
+
+            record.Position = SizeConstants.SegmentData;
+            record.Write(recordContent, SizeConstants.SegmentData, SizeConstants.SegmentData / 2);
+
+            var recordContentReadResult = new byte[recordContent.Length];
+            record.Seek(0, SeekOrigin.Begin);
+            record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
+            Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
+        }
+
+        [Test]
+        public void SeekBegin()
+        {
+            var empty = GetEmptyArray(2 * SizeConstants.SegmentData);
+            var record = CreateRecordWithContent("record", empty);
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
+
+            record.Seek(SizeConstants.SegmentData / 2, SeekOrigin.Begin);
+            record.Write(recordContent, SizeConstants.SegmentData / 2, SizeConstants.SegmentData / 2);
+
+            record.Seek(0, SeekOrigin.Begin);
+            record.Write(recordContent, 0, SizeConstants.SegmentData / 2);
+
+            record.Seek(SizeConstants.SegmentData + SizeConstants.SegmentData / 2, SeekOrigin.Begin);
+            record.Write(recordContent, SizeConstants.SegmentData + SizeConstants.SegmentData / 2, SizeConstants.SegmentData / 2);
+
+            record.Seek(SizeConstants.SegmentData, SeekOrigin.Begin);
+            record.Write(recordContent, SizeConstants.SegmentData, SizeConstants.SegmentData / 2);
+
+            var recordContentReadResult = new byte[recordContent.Length];
+            record.Seek(0, SeekOrigin.Begin);
+            record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
+            Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
+        }
+
+        [Test]
+        public void SeekCurrent()
+        {
+            var empty = GetEmptyArray(2 * SizeConstants.SegmentData);
+            var record = CreateRecordWithContent("record", empty);
+            record.Seek(0, SeekOrigin.Begin);
+
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
+
+            record.Seek(SizeConstants.SegmentData / 2, SeekOrigin.Current);
+            record.Write(recordContent, SizeConstants.SegmentData / 2, SizeConstants.SegmentData / 2);
+
+            record.Seek(-SizeConstants.SegmentData, SeekOrigin.Current);
+            record.Write(recordContent, 0, SizeConstants.SegmentData / 2);
+
+            record.Seek(SizeConstants.SegmentData, SeekOrigin.Current);
+            record.Write(recordContent, SizeConstants.SegmentData + SizeConstants.SegmentData / 2, SizeConstants.SegmentData / 2);
+
+            record.Seek(-SizeConstants.SegmentData, SeekOrigin.Current);
+            record.Write(recordContent, SizeConstants.SegmentData, SizeConstants.SegmentData / 2);
+
+            var recordContentReadResult = new byte[recordContent.Length];
+            record.Seek(0, SeekOrigin.Begin);
+            record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
+            Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
+        }
+
+        [Test]
+        public void SeekEnd()
+        {
+            var empty = GetEmptyArray(2 * SizeConstants.SegmentData);
+            var record = CreateRecordWithContent("record", empty);
+            record.Seek(0, SeekOrigin.Begin);
+
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
+
+            record.Seek(-2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2, SeekOrigin.End);
+            record.Write(recordContent, SizeConstants.SegmentData / 2, SizeConstants.SegmentData / 2);
+
+            record.Seek(-2 * SizeConstants.SegmentData, SeekOrigin.End);
+            record.Write(recordContent, 0, SizeConstants.SegmentData / 2);
+
+            record.Seek(-SizeConstants.SegmentData / 2, SeekOrigin.End);
+            record.Write(recordContent, SizeConstants.SegmentData + SizeConstants.SegmentData / 2, SizeConstants.SegmentData / 2);
+
+            record.Seek(-SizeConstants.SegmentData, SeekOrigin.End);
+            record.Write(recordContent, SizeConstants.SegmentData, SizeConstants.SegmentData / 2);
+
+            var recordContentReadResult = new byte[recordContent.Length];
+            record.Seek(0, SeekOrigin.Begin);
+            record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
+            Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
+        }
     }
 }

@@ -3,7 +3,7 @@ using System.IO;
 
 namespace SingleFileStorage.Core
 {
-    class SegmentIterator
+    class SegmentReadWriteIterator
     {
         public delegate void IterationDelegate(Segment currentSegment, int segmentAvailableBytes, long totalIteratedBytes);
 
@@ -16,7 +16,7 @@ namespace SingleFileStorage.Core
         {
             get
             {
-                if (_lastIteratedSegment == null) throw new InvalidOperationException("Iteration has not been ended");
+                if (_lastIteratedSegment == null) throw new InvalidOperationException("Iteration has not been finished");
                 return _lastIteratedSegment;
             }
         }
@@ -25,7 +25,7 @@ namespace SingleFileStorage.Core
 
         public long TotalIteratedBytes { get; private set; }
 
-        public SegmentIterator(IStorageFileStream storageFileStream, Segment startSegment, long bytesCount)
+        public SegmentReadWriteIterator(IStorageFileStream storageFileStream, Segment startSegment, long bytesCount)
         {
             _storageFileStream = storageFileStream;
             _startSegment = startSegment;
@@ -55,7 +55,9 @@ namespace SingleFileStorage.Core
                     TotalIteratedBytes += segmentAvailableBytes;
                     if (currentSegment.NextSegmentIndex != Segment.NullValue)
                     {
-                        var nextSegment = Segment.CreateFromSegmentIndex(_storageFileStream, currentSegment.NextSegmentIndex);
+                        var nextSegmentStartPosition = Segment.GetSegmentStartPosition(currentSegment.NextSegmentIndex);
+                        _storageFileStream.Seek(nextSegmentStartPosition, SeekOrigin.Begin);
+                        var nextSegment = Segment.CreateFromCurrentPosition(_storageFileStream);
                         _storageFileStream.Seek(nextSegment.DataStartPosition, SeekOrigin.Begin);
                         currentSegment = nextSegment;
                     }

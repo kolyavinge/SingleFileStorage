@@ -90,15 +90,15 @@ namespace SingleFileStorage.Core
             return (uint)((fileStreamLength - SizeConstants.StorageDescription) / SizeConstants.Segment);
         }
 
-        public static uint GetSegmentStartPosition(IStorageFileStream storageFileStream, uint segmentIndex)
+        public static uint GetSegmentStartPosition(uint segmentIndex)
         {
             return SizeConstants.StorageDescription + SizeConstants.Segment * segmentIndex;
         }
 
-        public static Segment CreateFromSegmentIndex(IStorageFileStream storageFileStream, uint segmentIndex)
+        public static Segment CreateFromCurrentPosition(IStorageFileStream storageFileStream)
         {
             var segment = new Segment();
-            segment.Index = segmentIndex;
+            segment.Index = GetCurrentSegmentIndex(storageFileStream.Position);
             segment.State = ReadState(storageFileStream);
             if (SegmentState.IsLast(segment.State))
             {
@@ -110,7 +110,7 @@ namespace SingleFileStorage.Core
                 segment.NextSegmentIndex = ReadNextSegmentIndexOrDataLength(storageFileStream);
                 segment.DataLength = SizeConstants.SegmentData;
             }
-            segment.StartPosition = SizeConstants.StorageDescription + SizeConstants.Segment * segmentIndex;
+            segment.StartPosition = SizeConstants.StorageDescription + SizeConstants.Segment * segment.Index;
 
             return segment;
         }
@@ -124,5 +124,10 @@ namespace SingleFileStorage.Core
         public long EndPosition => StartPosition + SizeConstants.Segment;
         public long DataStartPosition => StartPosition + SizeConstants.SegmentState + SizeConstants.SegmentNextIndexOrDataLength;
         public long DataEndPosition => DataStartPosition + SizeConstants.SegmentData;
+
+        public bool Contains(long position)
+        {
+            return DataStartPosition <= position && position <= DataStartPosition + DataLength;
+        }
     }
 }

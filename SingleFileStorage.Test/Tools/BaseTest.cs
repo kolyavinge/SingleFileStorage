@@ -9,6 +9,14 @@ namespace SingleFileStorage.Test.Tools
         protected Storage _storage;
         protected MemoryFileStream _memoryStream;
 
+        public Stream CreateEmptyRecord(string recordName)
+        {
+            _storage.CreateRecord(recordName);
+            var record = _storage.OpenRecord(recordName, RecordAccess.ReadWrite);
+
+            return record;
+        }
+
         public Stream CreateRecordWithContent(string recordName, byte[] recordContent)
         {
             _storage.CreateRecord(recordName);
@@ -35,6 +43,11 @@ namespace SingleFileStorage.Test.Tools
             rand.NextBytes(result);
 
             return result;
+        }
+
+        public byte[] GetEmptyArray(int size)
+        {
+            return new byte[size];
         }
     }
 }
