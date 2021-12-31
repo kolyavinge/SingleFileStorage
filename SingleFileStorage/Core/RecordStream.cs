@@ -217,7 +217,40 @@ namespace SingleFileStorage.Core
 
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
+            if (value < 0) throw new ArgumentException(nameof(value));
+            else if (value == Length) return;
+            else if (value < Length)
+            {
+                _lastStorageFileStreamPosition = _storageFileStream.Seek(_firstSegment.DataStartPosition, SeekOrigin.Begin);
+                _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _firstSegment, value);
+                uint deletedSegmentIndex = _currentSegment.NextSegmentIndex;
+                SegmentState.SetLast(ref _currentSegment.State);
+                _currentSegment.DataLength = (uint)(_storageFileStream.Position - _currentSegment.DataStartPosition);
+                _currentSegment.NextSegmentIndex = Segment.NullValue;
+                _storageFileStream.Seek(_currentSegment.StartPosition, SeekOrigin.Begin);
+                Segment.WriteState(_storageFileStream, _currentSegment.State);
+                Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, _currentSegment.DataLength);
+                while (deletedSegmentIndex != Segment.NullValue)
+                {
+                    long deletedSegmentStartPosition = Segment.GetSegmentStartPosition(deletedSegmentIndex);
+                    _storageFileStream.Seek(deletedSegmentStartPosition, SeekOrigin.Begin);
+                    var deletedSegment = Segment.CreateFromCurrentPosition(_storageFileStream);
+                    SegmentState.SetFree(ref deletedSegment.State);
+                    _storageFileStream.Seek(-SizeConstants.SegmentNextIndexOrDataLength - SizeConstants.SegmentState, SeekOrigin.Current);
+                    Segment.WriteState(_storageFileStream, deletedSegment.State);
+                    deletedSegmentIndex = deletedSegment.NextSegmentIndex;
+                }
+                _recordDescription.LastSegmentIndex = _currentSegment.Index;
+                _recordDescription.RecordLength = (uint)value;
+                _storageFileStream.Seek(_recordDescription.LastSegmentIndexPosition, SeekOrigin.Begin);
+                RecordDescription.WriteLastSegmentIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
+                RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
+            }
+            else
+            {
+                throw new ArgumentException("Hasn't realised yet");
+            }
+            _currentSegment = _firstSegment;
         }
 
         public override void Flush()

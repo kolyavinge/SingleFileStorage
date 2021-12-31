@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using SingleFileStorage.Core;
 
@@ -34,6 +35,34 @@ namespace SingleFileStorage.Test.Tools
             _memoryStream.Seek(position, SeekOrigin.Begin);
 
             return recordDescription;
+        }
+
+        public List<Segment> GetAllSegments(string name)
+        {
+            var result = new List<Segment>();
+
+            var position = _memoryStream.Position;
+
+            _memoryStream.Seek(SizeConstants.StorageDescription, SeekOrigin.Begin);
+            var recordDescription = RecordDescription.FindByName(_memoryStream, name);
+            var segmentPosition = Segment.GetSegmentStartPosition(recordDescription.FirstSegmentIndex);
+            _memoryStream.Seek(segmentPosition, SeekOrigin.Begin);
+            var segment = Segment.CreateFromCurrentPosition(_memoryStream);
+            result.Add(segment);
+
+            segmentPosition = segment.NextSegmentIndex;
+            while (segmentPosition != Segment.NullValue)
+            {
+                segmentPosition = Segment.GetSegmentStartPosition(segmentPosition);
+                _memoryStream.Seek(segmentPosition, SeekOrigin.Begin);
+                segment = Segment.CreateFromCurrentPosition(_memoryStream);
+                result.Add(segment);
+                segmentPosition = segment.NextSegmentIndex;
+            }
+
+            _memoryStream.Seek(position, SeekOrigin.Begin);
+
+            return result;
         }
 
         public byte[] GetRandomByteArray(int size)
