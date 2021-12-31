@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace SingleFileStorage.Core
 {
@@ -55,9 +53,16 @@ namespace SingleFileStorage.Core
             Segment.WriteData(storageFileStream, buffer, offset, count);
         }
 
+        public static void AppendSegment(IStorageFileStream storageFileStream, byte state, uint nextSegmentIndexOrDataLength, byte[] buffer, int offset, int count, out Segment appendedSegment)
+        {
+            uint index = GetSegmentIndex(storageFileStream.Position);
+            AppendSegment(storageFileStream, state, nextSegmentIndexOrDataLength, buffer, offset, count);
+            appendedSegment = new Segment(index, state, nextSegmentIndexOrDataLength);
+        }
+
         public static uint FindNextFreeSegmentIndex(IStorageFileStream storageFileStream)
         {
-            uint segmentIndex = GetCurrentSegmentIndex(storageFileStream.Position);
+            uint segmentIndex = GetSegmentIndex(storageFileStream.Position);
             uint segmentsCount = GetSegmentsCount(storageFileStream.Length);
             while (segmentIndex < segmentsCount)
             {
@@ -74,7 +79,7 @@ namespace SingleFileStorage.Core
             return NullValue;
         }
 
-        public static uint GetCurrentSegmentIndex(long fileStreamPosition)
+        public static uint GetSegmentIndex(long fileStreamPosition)
         {
             long correctedPosition = fileStreamPosition - SizeConstants.StorageDescription;
             long fullSegmentsCount = correctedPosition / SizeConstants.Segment;
@@ -97,20 +102,10 @@ namespace SingleFileStorage.Core
 
         public static Segment CreateFromCurrentPosition(IStorageFileStream storageFileStream)
         {
-            var segment = new Segment();
-            segment.Index = GetCurrentSegmentIndex(storageFileStream.Position);
-            segment.State = ReadState(storageFileStream);
-            if (SegmentState.IsLast(segment.State))
-            {
-                segment.NextSegmentIndex = NullValue;
-                segment.DataLength = ReadNextSegmentIndexOrDataLength(storageFileStream);
-            }
-            else
-            {
-                segment.NextSegmentIndex = ReadNextSegmentIndexOrDataLength(storageFileStream);
-                segment.DataLength = SizeConstants.SegmentData;
-            }
-            segment.StartPosition = SizeConstants.StorageDescription + SizeConstants.Segment * segment.Index;
+            uint index = GetSegmentIndex(storageFileStream.Position);
+            byte state = ReadState(storageFileStream);
+            uint nextSegmentIndexOrDataLength = ReadNextSegmentIndexOrDataLength(storageFileStream);
+            var segment = new Segment(index, state, nextSegmentIndexOrDataLength);
 
             return segment;
         }
@@ -124,6 +119,23 @@ namespace SingleFileStorage.Core
         public long EndPosition => StartPosition + SizeConstants.Segment;
         public long DataStartPosition => StartPosition + SizeConstants.SegmentState + SizeConstants.SegmentNextIndexOrDataLength;
         public long DataEndPosition => DataStartPosition + SizeConstants.SegmentData;
+
+        private Segment(uint index, byte state, uint nextSegmentIndexOrDataLength)
+        {
+            Index = index;
+            State = state;
+            if (SegmentState.IsLast(State))
+            {
+                NextSegmentIndex = NullValue;
+                DataLength = nextSegmentIndexOrDataLength;
+            }
+            else
+            {
+                NextSegmentIndex = nextSegmentIndexOrDataLength;
+                DataLength = SizeConstants.SegmentData;
+            }
+            StartPosition = SizeConstants.StorageDescription + SizeConstants.Segment * Index;
+        }
 
         public bool Contains(long position)
         {

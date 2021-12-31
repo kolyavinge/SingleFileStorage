@@ -5,6 +5,13 @@ namespace SingleFileStorage.Core
 {
     internal class SegmentPositionIterator
     {
+        public static Segment IterateAndGetLastSegment(IStorageFileStream storageFileStream, Segment startSegment, long position)
+        {
+            var iterator = new SegmentPositionIterator(storageFileStream, startSegment, position);
+            iterator.Iterate();
+            return iterator.LastIteratedSegment;
+        }
+
         private readonly IStorageFileStream _storageFileStream;
         private readonly Segment _startSegment;
         private readonly long _position;
