@@ -16,8 +16,16 @@ namespace SingleFileStorage.Core
 
         public void InitDescription()
         {
-            var emptyDescriptionBytes = new byte[SizeConstants.StorageDescription];
-            _fileStream.WriteByteArray(emptyDescriptionBytes, 0, emptyDescriptionBytes.Length);
+            try
+            {
+                _fileStream.BeginReadWrite();
+                var emptyDescriptionBytes = new byte[SizeConstants.StorageDescription];
+                _fileStream.WriteByteArray(emptyDescriptionBytes, 0, emptyDescriptionBytes.Length);
+            }
+            finally
+            {
+                _fileStream.EndReadWrite();
+            }
         }
 
         public void CreateRecord(string recordName)

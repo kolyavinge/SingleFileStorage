@@ -14,9 +14,7 @@ namespace SingleFileStorage.Test.Tools
         {
             _memoryStream = new MemoryFileStream();
             _storage = new Storage(_memoryStream);
-            _memoryStream.BeginReadWrite();
             _storage.InitDescription();
-            _memoryStream.EndReadWrite();
         }
 
         public Stream CreateEmptyRecord(string recordName)
@@ -46,7 +44,7 @@ namespace SingleFileStorage.Test.Tools
             return recordDescription;
         }
 
-        public List<Segment> GetAllSegments(string name)
+        public List<Segment> GetAllRecordSegments(string name)
         {
             var result = new List<Segment>();
 
