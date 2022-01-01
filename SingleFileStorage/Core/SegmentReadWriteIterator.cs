@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 
 namespace SingleFileStorage.Core
 {
@@ -34,37 +33,29 @@ namespace SingleFileStorage.Core
 
         public void Iterate(IterationDelegate iterationFunc)
         {
+            var iterator = new SegmentIterator(_storageFileStream, _startSegment);
             TotalIteratedBytes = 0;
             RemainingBytes = _bytesCount;
-            var currentSegment = _startSegment;
             while (RemainingBytes > 0)
             {
                 int segmentAvailableBytes;
-                if (RemainingBytes <= currentSegment.DataEndPosition - _storageFileStream.Position)
+                if (RemainingBytes <= iterator.Current.DataEndPosition - _storageFileStream.Position)
                 {
                     segmentAvailableBytes = (int)RemainingBytes;
                     RemainingBytes -= segmentAvailableBytes;
-                    iterationFunc(currentSegment, segmentAvailableBytes, TotalIteratedBytes);
+                    iterationFunc(iterator.Current, segmentAvailableBytes, TotalIteratedBytes);
                     TotalIteratedBytes += segmentAvailableBytes;
                 }
                 else
                 {
-                    segmentAvailableBytes = (int)(currentSegment.DataEndPosition - _storageFileStream.Position);
+                    segmentAvailableBytes = (int)(iterator.Current.DataEndPosition - _storageFileStream.Position);
                     RemainingBytes -= segmentAvailableBytes;
-                    iterationFunc(currentSegment, segmentAvailableBytes, TotalIteratedBytes);
+                    iterationFunc(iterator.Current, segmentAvailableBytes, TotalIteratedBytes);
                     TotalIteratedBytes += segmentAvailableBytes;
-                    if (currentSegment.NextSegmentIndex != Segment.NullValue)
-                    {
-                        var nextSegmentStartPosition = Segment.GetSegmentStartPosition(currentSegment.NextSegmentIndex);
-                        _storageFileStream.Seek(nextSegmentStartPosition, SeekOrigin.Begin);
-                        var nextSegment = Segment.CreateFromCurrentPosition(_storageFileStream);
-                        _storageFileStream.Seek(nextSegment.DataStartPosition, SeekOrigin.Begin);
-                        currentSegment = nextSegment;
-                    }
-                    else break;
+                    if (!iterator.MoveNext()) break;
                 }
             }
-            _lastIteratedSegment = currentSegment;
+            _lastIteratedSegment = iterator.Current;
         }
     }
 }

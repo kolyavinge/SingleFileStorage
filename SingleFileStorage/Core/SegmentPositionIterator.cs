@@ -35,30 +35,22 @@ namespace SingleFileStorage.Core
 
         public void Iterate()
         {
+            var iterator = new SegmentIterator(_storageFileStream, _startSegment);
             long remainingBytes = _position;
-            var currentSegment = _startSegment;
             while (remainingBytes > 0)
             {
-                if (remainingBytes <= currentSegment.DataEndPosition - _storageFileStream.Position)
+                if (remainingBytes <= iterator.Current.DataEndPosition - _storageFileStream.Position)
                 {
                     _storageFileStream.Seek((int)remainingBytes, SeekOrigin.Current);
                     break;
                 }
                 else
                 {
-                    remainingBytes -= (int)(currentSegment.DataEndPosition - _storageFileStream.Position);
-                    if (currentSegment.NextSegmentIndex != Segment.NullValue)
-                    {
-                        var nextSegmentStartPosition = Segment.GetSegmentStartPosition(currentSegment.NextSegmentIndex);
-                        _storageFileStream.Seek(nextSegmentStartPosition, SeekOrigin.Begin);
-                        var nextSegment = Segment.CreateFromCurrentPosition(_storageFileStream);
-                        _storageFileStream.Seek(nextSegment.DataStartPosition, SeekOrigin.Begin);
-                        currentSegment = nextSegment;
-                    }
-                    else break;
+                    remainingBytes -= (int)(iterator.Current.DataEndPosition - _storageFileStream.Position);
+                    if (!iterator.MoveNext()) break;
                 }
             }
-            _lastIteratedSegment = currentSegment;
+            _lastIteratedSegment = iterator.Current;
         }
     }
 }
