@@ -10,6 +10,15 @@ namespace SingleFileStorage.Test.Tools
         protected Storage _storage;
         protected MemoryFileStream _memoryStream;
 
+        public void InitStorage()
+        {
+            _memoryStream = new MemoryFileStream();
+            _storage = new Storage(_memoryStream);
+            _memoryStream.BeginReadWrite();
+            _storage.InitDescription();
+            _memoryStream.EndReadWrite();
+        }
+
         public Stream CreateEmptyRecord(string recordName)
         {
             _storage.CreateRecord(recordName);

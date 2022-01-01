@@ -7,20 +7,16 @@ using SingleFileStorage.Test.Utils;
 
 namespace SingleFileStorage.Test.Core
 {
-    class StorageTest : BaseTest
+    class RecordStreamTest : BaseTest
     {
         [SetUp]
         public void Setup()
         {
-            _memoryStream = new MemoryFileStream();
-            _storage = new Storage(_memoryStream);
-            _memoryStream.BeginReadWrite();
-            _storage.InitDescription();
-            _memoryStream.EndReadWrite();
+            InitStorage();
         }
 
         [Test]
-        public void Record_Position_Read()
+        public void Position_Read()
         {
             _storage.CreateRecord("record");
             var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
@@ -44,7 +40,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_Position_Write()
+        public void Position_Write()
         {
             _storage.CreateRecord("record");
             var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
@@ -65,7 +61,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_ManyRead()
+        public void ManyRead()
         {
             _storage.CreateRecord("record");
             var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
@@ -81,7 +77,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_ManyWrite()
+        public void ManyWrite()
         {
             _storage.CreateRecord("record");
             var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
@@ -97,7 +93,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_RecordDescription()
+        public void RecordDescription()
         {
             _storage.CreateRecord("record");
             var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
@@ -140,7 +136,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_Length()
+        public void Length()
         {
             _storage.CreateRecord("record");
             var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
@@ -162,7 +158,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_WithinSegment()
+        public void WithinSegment()
         {
             var recordContent = GetRandomByteArray(100);
             var record = CreateRecordWithContent("record", recordContent);
@@ -186,7 +182,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_TwoSizeSegments()
+        public void TwoSizeSegments()
         {
             var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
             var record = CreateRecordWithContent("record", recordContent);
@@ -198,7 +194,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_TwoSizeAndHalfSegments()
+        public void TwoSizeAndHalfSegments()
         {
             var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
             var record = CreateRecordWithContent("record", recordContent);
@@ -284,7 +280,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_Segments_1()
+        public void Segments_1()
         {
             var recordContent = GetRandomByteArray(100);
             CreateRecordWithContent("record", recordContent);
@@ -295,7 +291,7 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void Record_Segments_2()
+        public void Segments_2()
         {
             var recordContent = GetRandomByteArray(SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
             CreateRecordWithContent("record", recordContent);
