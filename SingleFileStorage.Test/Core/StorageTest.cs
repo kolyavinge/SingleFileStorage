@@ -69,6 +69,21 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
+        public void IsRecordExist_No()
+        {
+            var result = _storage.IsRecordExist("record");
+            Assert.IsFalse(result);
+        }
+
+        [Test]
+        public void IsRecordExist_Yes()
+        {
+            _storage.CreateRecord("record");
+            var result = _storage.IsRecordExist("record");
+            Assert.IsTrue(result);
+        }
+
+        [Test]
         public void RenameRecord_NotExists()
         {
             try

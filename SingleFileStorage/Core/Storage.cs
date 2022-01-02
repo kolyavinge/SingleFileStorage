@@ -62,6 +62,15 @@ namespace SingleFileStorage.Core
             return new RecordStream(_fileStream, recordDescription);
         }
 
+        public bool IsRecordExist(string recordName)
+        {
+            RecordName.ThrowErrorIfInvalid(recordName);
+            _fileStream.Seek(0, SeekOrigin.Begin);
+            var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
+
+            return recordDescription != null;
+        }
+
         public void RenameRecord(string oldRecordName, string newRecordName)
         {
             RecordName.ThrowErrorIfInvalid(oldRecordName);
