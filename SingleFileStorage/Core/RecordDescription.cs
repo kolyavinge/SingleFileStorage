@@ -69,7 +69,7 @@ namespace SingleFileStorage.Core
                 }
             }
 
-            throw new ApplicationException("Cannot find any free record description");
+            throw new IOException("Cannot find any free record description.");
         }
 
         public static RecordDescription FindByName(IStorageFileStream storageFileStream, string recordName)
@@ -82,16 +82,19 @@ namespace SingleFileStorage.Core
                 {
                     var currentRecordNameBytes = new byte[SizeConstants.RecordName];
                     storageFileStream.ReadByteArray(currentRecordNameBytes, 0, SizeConstants.RecordName);
-                    if (RecordName.IsEqual(recordNameBytes, currentRecordNameBytes)) break;
+                    if (RecordName.IsEqual(recordNameBytes, currentRecordNameBytes))
+                    {
+                        return MakeStartFromFirstSegmentIndex(storageFileStream);
+                    }
                     storageFileStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
                 }
                 else
                 {
-                    storageFileStream.Seek(SizeConstants.RecordLength - SizeConstants.RecordState, SeekOrigin.Current);
+                    storageFileStream.Seek(SizeConstants.RecordDescription - SizeConstants.RecordState, SeekOrigin.Current);
                 }
             }
 
-            return MakeStartFromFirstSegmentIndex(storageFileStream);
+            return null;
         }
 
         private static RecordDescription MakeStartFromFirstSegmentIndex(IStorageFileStream storageFileStream)

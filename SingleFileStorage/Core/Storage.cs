@@ -29,6 +29,9 @@ namespace SingleFileStorage.Core
         {
             RecordName.ThrowErrorIfInvalid(recordName);
             _fileStream.Seek(0, SeekOrigin.Begin);
+            var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
+            if (recordDescription != null) throw new IOException($"Record '{recordName}' already exists.");
+            _fileStream.Seek(0, SeekOrigin.Begin);
             RecordDescription.FindFree(_fileStream);
             RecordDescription.WriteName(_fileStream, recordName);
             long recordDescriptionFirstSegmentIndexPosition = _fileStream.Position;
@@ -54,6 +57,7 @@ namespace SingleFileStorage.Core
             RecordName.ThrowErrorIfInvalid(recordName);
             _fileStream.Seek(0, SeekOrigin.Begin);
             var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
+            if (recordDescription == null) throw new IOException($"Record '{recordName}' does not exist.");
 
             return new RecordStream(_fileStream, recordDescription);
         }

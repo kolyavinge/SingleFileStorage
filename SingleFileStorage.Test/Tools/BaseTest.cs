@@ -61,7 +61,7 @@ namespace SingleFileStorage.Test.Tools
 
             var position = _memoryStream.Position;
 
-            _memoryStream.Seek(SizeConstants.StorageDescription, SeekOrigin.Begin);
+            _memoryStream.Seek(0, SeekOrigin.Begin);
             var recordDescription = RecordDescription.FindByName(_memoryStream, name);
             var segmentPosition = Segment.GetSegmentStartPosition(recordDescription.FirstSegmentIndex);
             _memoryStream.Seek(segmentPosition, SeekOrigin.Begin);
