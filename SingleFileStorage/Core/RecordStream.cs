@@ -14,7 +14,7 @@ namespace SingleFileStorage.Core
 
         public override bool CanRead => true;
 
-        public override bool CanWrite { get; }
+        public override bool CanWrite => _storageFileStream.CanWrite;
 
         public override bool CanSeek => true;
 
@@ -26,11 +26,10 @@ namespace SingleFileStorage.Core
             set => Seek(value, SeekOrigin.Begin);
         }
 
-        public RecordStream(IStorageFileStream storageFileStream, RecordAccess access, RecordDescription recordDescription)
+        public RecordStream(IStorageFileStream storageFileStream, RecordDescription recordDescription)
         {
-            _storageFileStream = storageFileStream ?? throw new ArgumentNullException(nameof(storageFileStream));
+            _storageFileStream = storageFileStream;
             _recordDescription = recordDescription;
-            CanWrite = access == RecordAccess.ReadWrite;
             var firstSegmentStartPosition = Segment.GetSegmentStartPosition(_recordDescription.FirstSegmentIndex);
             _storageFileStream.Seek(firstSegmentStartPosition, SeekOrigin.Begin);
             _firstSegment = Segment.CreateFromCurrentPosition(_storageFileStream);
@@ -58,6 +57,7 @@ namespace SingleFileStorage.Core
 
         public override void Write(byte[] buffer, int offset, int count)
         {
+            if (_storageFileStream.AccessMode != Access.Modify) throw new InvalidOperationException("Stream cannot be modified.");
             _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
             var iterator = new SegmentReadWriteIterator(_storageFileStream, _currentSegment, count);
             iterator.Iterate((currentSegment, segmentAvailableBytes, totalIteratedBytes) =>
@@ -217,6 +217,7 @@ namespace SingleFileStorage.Core
 
         public override void SetLength(long value)
         {
+            if (_storageFileStream.AccessMode != Access.Modify) throw new InvalidOperationException("Stream cannot be modified.");
             if (value < 0) throw new ArgumentException(nameof(value));
             else if (value == Length) return;
             else if (value < Length)
@@ -249,21 +250,6 @@ namespace SingleFileStorage.Core
             _currentSegment = _firstSegment;
         }
 
-        public override void Flush()
-        {
-            _storageFileStream.Flush();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            _storageFileStream.EndReadWrite();
-            base.Dispose(disposing);
-        }
-
-        public override void Close()
-        {
-            _storageFileStream.EndReadWrite();
-            base.Close();
-        }
+        public override void Flush() { }
     }
 }

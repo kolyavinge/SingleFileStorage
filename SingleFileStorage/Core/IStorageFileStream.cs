@@ -5,17 +5,15 @@ using System.Text;
 
 namespace SingleFileStorage.Core
 {
-    internal interface IStorageFileStream
+    internal interface IStorageFileStream : IDisposable
     {
+        Access? AccessMode { get; }
+
+        bool CanWrite { get; }
+
         long Position { get; }
 
         long Length { get; }
-
-        void BeginRead();
-
-        void BeginReadWrite();
-
-        void EndReadWrite();
 
         byte ReadByte();
 
@@ -30,7 +28,5 @@ namespace SingleFileStorage.Core
         void WriteByteArray(byte[] buffer, int offset, int count);
 
         long Seek(long offset, SeekOrigin origin);
-
-        void Flush();
     }
 }

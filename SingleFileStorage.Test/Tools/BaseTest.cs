@@ -8,19 +8,30 @@ namespace SingleFileStorage.Test.Tools
     internal abstract class BaseTest
     {
         protected Storage _storage;
-        protected MemoryFileStream _memoryStream;
+        protected MemoryStorageFileStream _memoryStream;
 
         public void InitStorage()
         {
-            _memoryStream = new MemoryFileStream();
+            _memoryStream = new MemoryStorageFileStream();
+            _memoryStream.Open(Access.Modify);
+            Storage.InitDescription(_memoryStream);
+        }
+
+        public void OpenStorage()
+        {
             _storage = new Storage(_memoryStream);
-            _storage.InitDescription();
+        }
+
+        public void DisposeStorage()
+        {
+            _storage.Dispose();
+            _storage = null;
         }
 
         public Stream CreateEmptyRecord(string recordName)
         {
             _storage.CreateRecord(recordName);
-            var record = _storage.OpenRecord(recordName, RecordAccess.ReadWrite);
+            var record = _storage.OpenRecord(recordName);
 
             return record;
         }
@@ -28,7 +39,7 @@ namespace SingleFileStorage.Test.Tools
         public Stream CreateRecordWithContent(string recordName, byte[] recordContent)
         {
             _storage.CreateRecord(recordName);
-            var record = _storage.OpenRecord(recordName, RecordAccess.ReadWrite);
+            var record = _storage.OpenRecord(recordName);
             record.Write(recordContent, 0, recordContent.Length);
 
             return record;

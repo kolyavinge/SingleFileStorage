@@ -3,9 +3,10 @@ using System.IO;
 
 namespace SingleFileStorage
 {
-    public interface IStorage
+    public interface IStorage : IDisposable
     {
         void CreateRecord(string recordName);
-        Stream OpenRecord(string name, RecordAccess access);
+
+        Stream OpenRecord(string recordName);
     }
 }

@@ -1,40 +1,37 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using SingleFileStorage.Core;
 
 namespace SingleFileStorage.Infrastructure
 {
-    internal class StorageFileStream : IStorageFileStream
+    internal abstract class StorageFileStream : IStorageFileStream
     {
-        private readonly string _fullPath;
-        private FileStream _fileStream;
+        private Stream _stream;
         private BinaryReader _reader;
         private BinaryWriter _writer;
 
-        public long Position => _fileStream.Position;
+        public Access? AccessMode { get; private set; }
 
-        public long Length => _fileStream.Length;
+        public bool CanWrite => _stream.CanWrite;
 
-        public StorageFileStream(string fullPath)
+        public long Position => _stream.Position;
+
+        public long Length => _stream.Length;
+
+        public void Open(Access access)
         {
-            _fullPath = fullPath;
+            AccessMode = access;
+            _stream = OpenStream(access);
+            _reader = new BinaryReader(_stream);
+            if (access == Access.Modify) _writer = new BinaryWriter(_stream);
+            else _writer = null;
         }
 
-        public void BeginRead()
-        {
-            _fileStream = File.Open(_fullPath, FileMode.Open, FileAccess.Read);
-            _reader = new BinaryReader(_fileStream);
-        }
+        protected abstract Stream OpenStream(Access access);
 
-        public void BeginReadWrite()
+        public virtual void Dispose()
         {
-            _fileStream = File.Open(_fullPath, FileMode.Open, FileAccess.ReadWrite);
-            _reader = new BinaryReader(_fileStream);
-            _writer = new BinaryWriter(_fileStream);
-        }
-
-        public void EndReadWrite()
-        {
-            _fileStream.Close();
+            _stream.Close();
         }
 
         public byte ReadByte()
@@ -49,7 +46,7 @@ namespace SingleFileStorage.Infrastructure
 
         public int ReadByteArray(byte[] buffer, int offset, int count)
         {
-            return _fileStream.Read(buffer, offset, count);
+            return _stream.Read(buffer, offset, count);
         }
 
         public void WriteByte(byte value)
@@ -69,12 +66,12 @@ namespace SingleFileStorage.Infrastructure
 
         public long Seek(long offset, SeekOrigin origin)
         {
-            return _fileStream.Seek(offset, origin);
+            return _stream.Seek(offset, origin);
         }
 
         public void Flush()
         {
-            _fileStream.Flush();
+            _stream.Flush();
         }
     }
 }

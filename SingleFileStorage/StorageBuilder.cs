@@ -9,18 +9,21 @@ namespace SingleFileStorage
 {
     public class StorageBuilder
     {
-        public static IStorage Create(string fullPath)
+        public static void Create(string fullPath)
         {
-            using (var fs = File.Create(fullPath)) { }
-            var storage = new Storage(new StorageFileStream(fullPath));
-            storage.InitDescription();
-
-            return storage;
+            File.Create(fullPath).Close();
+            using (var diskStorageFileStream = new DiskStorageFileStream(fullPath))
+            {
+                diskStorageFileStream.Open(Access.Modify);
+                Storage.InitDescription(diskStorageFileStream);
+            }
         }
 
-        public static IStorage Open(string fullPath)
+        public static IStorage Open(string fullPath, Access access)
         {
-            var storage = new Storage(new StorageFileStream(fullPath));
+            var diskStorageFileStream = new DiskStorageFileStream(fullPath);
+            diskStorageFileStream.Open(access);
+            var storage = new Storage(diskStorageFileStream);
 
             return storage;
         }

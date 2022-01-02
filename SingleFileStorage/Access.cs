@@ -4,9 +4,9 @@ using System.Text;
 
 namespace SingleFileStorage
 {
-    public enum RecordAccess
+    public enum Access
     {
         Read = 1,
-        ReadWrite = 2
+        Modify = 2
     }
 }

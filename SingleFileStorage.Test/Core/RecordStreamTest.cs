@@ -2,8 +2,8 @@
 using System.IO;
 using NUnit.Framework;
 using SingleFileStorage.Core;
-using SingleFileStorage.Test.Tools;
 using SingleFileStorage.Test.Utils;
+using SingleFileStorage.Test.Tools;
 
 namespace SingleFileStorage.Test.Core
 {
@@ -13,13 +13,40 @@ namespace SingleFileStorage.Test.Core
         public void Setup()
         {
             InitStorage();
+            OpenStorage();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            DisposeStorage();
+        }
+
+        [Test]
+        public void OpenReadAndTryWrite_Error()
+        {
+            var recordContent = GetRandomByteArray(SizeConstants.SegmentData);
+            CreateRecordWithContent("record", recordContent);
+            _memoryStream.Dispose();
+            _memoryStream.Open(Access.Read);
+            var storageForRead = new Storage(_memoryStream);
+            var record = storageForRead.OpenRecord("record");
+            try
+            {
+                record.Write(recordContent, 0, recordContent.Length);
+                Assert.Fail();
+            }
+            catch (Exception exp)
+            {
+                Assert.AreEqual("Stream cannot be modified.", exp.Message);
+            }
         }
 
         [Test]
         public void Position_Read()
         {
             _storage.CreateRecord("record");
-            var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
+            var record = _storage.OpenRecord("record");
             var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
             record.Write(recordContent, 0, recordContent.Length);
             record.Seek(0, SeekOrigin.Begin);
@@ -43,7 +70,7 @@ namespace SingleFileStorage.Test.Core
         public void Position_Write()
         {
             _storage.CreateRecord("record");
-            var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
+            var record = _storage.OpenRecord("record");
             Assert.AreEqual(0, record.Position);
 
             var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
@@ -64,7 +91,7 @@ namespace SingleFileStorage.Test.Core
         public void ManyRead()
         {
             _storage.CreateRecord("record");
-            var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
+            var record = _storage.OpenRecord("record");
             var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
             record.Write(recordContent, 0, recordContent.Length);
             record.Seek(0, SeekOrigin.Begin);
@@ -80,7 +107,7 @@ namespace SingleFileStorage.Test.Core
         public void ManyWrite()
         {
             _storage.CreateRecord("record");
-            var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
+            var record = _storage.OpenRecord("record");
             var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
             record.Write(recordContent, 0, 100);
             record.Write(recordContent, 100, SizeConstants.SegmentData - 100);
@@ -96,7 +123,7 @@ namespace SingleFileStorage.Test.Core
         public void RecordDescription()
         {
             _storage.CreateRecord("record");
-            var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
+            var record = _storage.OpenRecord("record");
             var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
 
             var recordDescription = GetRecordDescription("record");
@@ -139,7 +166,7 @@ namespace SingleFileStorage.Test.Core
         public void Length()
         {
             _storage.CreateRecord("record");
-            var record = _storage.OpenRecord("record", RecordAccess.ReadWrite);
+            var record = _storage.OpenRecord("record");
             var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
 
             Assert.AreEqual(0, record.Length);
@@ -483,6 +510,26 @@ namespace SingleFileStorage.Test.Core
             Assert.AreEqual(SegmentState.UsedAndLast, segments[1].State);
             Assert.AreEqual(SizeConstants.SegmentData / 2 - 100, segments[1].DataLength);
             Assert.AreEqual(Segment.NullValue, segments[1].NextSegmentIndex);
+        }
+
+        [Test]
+        public void OpenReadAndTrySetLength_Error()
+        {
+            var recordContent = GetRandomByteArray(SizeConstants.SegmentData);
+            CreateRecordWithContent("record", recordContent);
+            _memoryStream.Dispose();
+            _memoryStream.Open(Access.Read);
+            var storageForRead = new Storage(_memoryStream);
+            var record = storageForRead.OpenRecord("record");
+            try
+            {
+                record.SetLength(100);
+                Assert.Fail();
+            }
+            catch (Exception exp)
+            {
+                Assert.AreEqual("Stream cannot be modified.", exp.Message);
+            }
         }
     }
 }
