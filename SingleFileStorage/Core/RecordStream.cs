@@ -30,12 +30,9 @@ namespace SingleFileStorage.Core
         {
             _storageFileStream = storageFileStream;
             _recordDescription = recordDescription;
-            var firstSegmentStartPosition = Segment.GetSegmentStartPosition(_recordDescription.FirstSegmentIndex);
-            _storageFileStream.Seek(firstSegmentStartPosition, SeekOrigin.Begin);
-            _firstSegment = Segment.CreateFromCurrentPosition(_storageFileStream);
+            _firstSegment = Segment.GotoSegmentStartPositionAndCreate(_storageFileStream, _recordDescription.FirstSegmentIndex);
             _lastStorageFileStreamPosition = _firstSegment.DataStartPosition;
             _currentSegment = _firstSegment;
-            _position = 0;
         }
 
         public override int Read(byte[] buffer, int offset, int count)
@@ -163,9 +160,7 @@ namespace SingleFileStorage.Core
             {
                 if (!SegmentState.IsLast(_currentSegment.State))
                 {
-                    var lastSegmentStartPosition = Segment.GetSegmentStartPosition(_recordDescription.LastSegmentIndex);
-                    _storageFileStream.Seek(lastSegmentStartPosition, SeekOrigin.Begin);
-                    _currentSegment = Segment.CreateFromCurrentPosition(_storageFileStream);
+                    _currentSegment = Segment.GotoSegmentStartPositionAndCreate(_storageFileStream, _recordDescription.LastSegmentIndex);
                 }
                 if (_currentSegment.Contains(_currentSegment.DataStartPosition + _currentSegment.DataLength + offset))
                 {

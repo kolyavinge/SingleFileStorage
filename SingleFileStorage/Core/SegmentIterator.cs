@@ -18,9 +18,7 @@ namespace SingleFileStorage.Core
         {
             if (!SegmentState.IsLast(Current.State))
             {
-                var nextSegmentStartPosition = Segment.GetSegmentStartPosition(Current.NextSegmentIndex);
-                _storageFileStream.Seek(nextSegmentStartPosition, SeekOrigin.Begin);
-                var nextSegment = Segment.CreateFromCurrentPosition(_storageFileStream);
+                var nextSegment = Segment.GotoSegmentStartPositionAndCreate(_storageFileStream, Current.NextSegmentIndex);
                 _storageFileStream.Seek(nextSegment.DataStartPosition, SeekOrigin.Begin);
                 Current = nextSegment;
 

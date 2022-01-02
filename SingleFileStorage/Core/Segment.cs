@@ -110,6 +110,15 @@ namespace SingleFileStorage.Core
             return segment;
         }
 
+        public static Segment GotoSegmentStartPositionAndCreate(IStorageFileStream storageFileStream, uint segmentIndex)
+        {
+            var segmentStartPosition = GetSegmentStartPosition(segmentIndex);
+            storageFileStream.Seek(segmentStartPosition, SeekOrigin.Begin);
+            var segment = CreateFromCurrentPosition(storageFileStream);
+
+            return segment;
+        }
+
         public uint Index;
         public byte State;
         public uint NextSegmentIndex;
