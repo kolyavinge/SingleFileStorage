@@ -2,6 +2,7 @@
 using NUnit.Framework;
 using SingleFileStorage.Core;
 using SingleFileStorage.Test.Tools;
+using SingleFileStorage.Test.Utils;
 
 namespace SingleFileStorage.Test.Core
 {
@@ -23,15 +24,15 @@ namespace SingleFileStorage.Test.Core
         [Test]
         public void CreateRecord_AlreadyExists()
         {
-            _storage.CreateRecord("xxx");
+            _storage.CreateRecord("record");
             try
             {
-                _storage.CreateRecord("xxx");
+                _storage.CreateRecord("record");
                 Assert.Fail();
             }
             catch (IOException exp)
             {
-                Assert.AreEqual("Record 'xxx' already exists.", exp.Message);
+                Assert.AreEqual("Record 'record' already exists.", exp.Message);
             }
         }
 
@@ -58,13 +59,55 @@ namespace SingleFileStorage.Test.Core
         {
             try
             {
-                _storage.OpenRecord("xxx");
+                _storage.OpenRecord("record");
                 Assert.Fail();
             }
             catch (IOException exp)
             {
-                Assert.AreEqual("Record 'xxx' does not exist.", exp.Message);
+                Assert.AreEqual("Record 'record' does not exist.", exp.Message);
             }
+        }
+
+        [Test]
+        public void RenameRecord_NotExists()
+        {
+            try
+            {
+                _storage.RenameRecord("record", "new record");
+                Assert.Fail();
+            }
+            catch (IOException exp)
+            {
+                Assert.AreEqual("Record 'record' does not exist.", exp.Message);
+            }
+        }
+
+        [Test]
+        public void RenameRecord_NewAlreadyExists()
+        {
+            _storage.CreateRecord("record");
+            _storage.CreateRecord("new record");
+            try
+            {
+                _storage.RenameRecord("record", "new record");
+                Assert.Fail();
+            }
+            catch (IOException exp)
+            {
+                Assert.AreEqual("Record 'new record' already exists.", exp.Message);
+            }
+        }
+
+        [Test]
+        public void RenameRecord()
+        {
+            var recordContent = GetRandomByteArray(SizeConstants.SegmentData);
+            CreateRecordWithContent("record", recordContent);
+            _storage.RenameRecord("record", "new record");
+            var record = _storage.OpenRecord("new record");
+            var recordContentReadResult = new byte[recordContent.Length];
+            record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
+            Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
         }
     }
 }

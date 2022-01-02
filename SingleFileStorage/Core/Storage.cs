@@ -66,6 +66,14 @@ namespace SingleFileStorage.Core
         {
             RecordName.ThrowErrorIfInvalid(oldRecordName);
             RecordName.ThrowErrorIfInvalid(newRecordName);
+            _fileStream.Seek(0, SeekOrigin.Begin);
+            var oldRecordDescription = RecordDescription.FindByName(_fileStream, oldRecordName);
+            if (oldRecordDescription == null) throw new IOException($"Record '{oldRecordName}' does not exist.");
+            _fileStream.Seek(0, SeekOrigin.Begin);
+            var newRecordDescription = RecordDescription.FindByName(_fileStream, newRecordName);
+            if (newRecordDescription != null) throw new IOException($"Record '{newRecordName}' already exists.");
+            _fileStream.Seek(oldRecordDescription.StartPosition + SizeConstants.RecordState, SeekOrigin.Begin);
+            RecordDescription.WriteName(_fileStream, newRecordName);
         }
 
         public void DeleteRecord(string recordName)
