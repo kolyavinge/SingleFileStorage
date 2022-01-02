@@ -84,7 +84,7 @@ namespace SingleFileStorage.Core
                     storageFileStream.ReadByteArray(currentRecordNameBytes, 0, SizeConstants.RecordName);
                     if (RecordName.IsEqual(recordNameBytes, currentRecordNameBytes))
                     {
-                        return MakeStartFromFirstSegmentIndex(storageFileStream);
+                        return MakeStartFromFirstSegmentIndex(storageFileStream, recordState);
                     }
                     storageFileStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
                 }
@@ -97,11 +97,12 @@ namespace SingleFileStorage.Core
             return null;
         }
 
-        private static RecordDescription MakeStartFromFirstSegmentIndex(IStorageFileStream storageFileStream)
+        private static RecordDescription MakeStartFromFirstSegmentIndex(IStorageFileStream storageFileStream, byte state)
         {
             return new RecordDescription
             {
                 StartPosition = storageFileStream.Position - (SizeConstants.RecordState + SizeConstants.RecordName),
+                State = state,
                 FirstSegmentIndex = ReadFirstSegmentIndex(storageFileStream),
                 LastSegmentIndex = ReadLastSegmentIndex(storageFileStream),
                 RecordLength = ReadLength(storageFileStream)
@@ -109,6 +110,7 @@ namespace SingleFileStorage.Core
         }
 
         public long StartPosition;
+        public byte State;
         public uint FirstSegmentIndex;
         public uint LastSegmentIndex;
         public uint RecordLength;

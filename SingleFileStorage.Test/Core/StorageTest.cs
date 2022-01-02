@@ -124,5 +124,38 @@ namespace SingleFileStorage.Test.Core
             record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
             Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
         }
+
+        [Test]
+        public void DeleteRecord_NotExists()
+        {
+            try
+            {
+                _storage.DeleteRecord("record");
+                Assert.Fail();
+            }
+            catch (IOException exp)
+            {
+                Assert.AreEqual("Record 'record' does not exist.", exp.Message);
+            }
+        }
+
+        [Test]
+        public void DeleteRecord()
+        {
+            _storage.CreateRecord("record");
+            _storage.DeleteRecord("record");
+            var exist = _storage.IsRecordExist("record");
+            Assert.IsFalse(exist);
+        }
+
+        [Test]
+        public void DeleteRecord_CreateWithSameName()
+        {
+            _storage.CreateRecord("record");
+            _storage.DeleteRecord("record");
+            _storage.CreateRecord("record");
+            var exist = _storage.IsRecordExist("record");
+            Assert.IsTrue(exist);
+        }
     }
 }

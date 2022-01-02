@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 
 namespace SingleFileStorage.Core
 {
@@ -88,6 +86,23 @@ namespace SingleFileStorage.Core
         public void DeleteRecord(string recordName)
         {
             RecordName.ThrowErrorIfInvalid(recordName);
+            _fileStream.Seek(0, SeekOrigin.Begin);
+            var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
+            if (recordDescription == null) throw new IOException($"Record '{recordName}' does not exist.");
+            RecordState.SetFree(ref recordDescription.State);
+            _fileStream.Seek(recordDescription.StartPosition, SeekOrigin.Begin);
+            RecordDescription.WriteState(_fileStream, recordDescription.State);
+            var firstSegment = Segment.GotoSegmentStartPositionAndCreate(_fileStream, recordDescription.FirstSegmentIndex);
+            SegmentState.SetFree(ref firstSegment.State);
+            _fileStream.Seek(-SizeConstants.SegmentState, SeekOrigin.Current);
+            Segment.WriteState(_fileStream, firstSegment.State);
+            var segmentIterator = new SegmentIterator(_fileStream, firstSegment);
+            while (segmentIterator.MoveNext())
+            {
+                SegmentState.SetFree(ref segmentIterator.Current.State);
+                _fileStream.Seek(-SizeConstants.SegmentState, SeekOrigin.Current);
+                Segment.WriteState(_fileStream, segmentIterator.Current.State);
+            }
         }
     }
 }
