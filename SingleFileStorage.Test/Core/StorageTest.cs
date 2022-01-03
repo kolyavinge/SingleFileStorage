@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using NUnit.Framework;
 using SingleFileStorage.Core;
 using SingleFileStorage.Test.Tools;
@@ -51,6 +52,22 @@ namespace SingleFileStorage.Test.Core
             catch (IOException exp)
             {
                 Assert.AreEqual("Cannot find any free record description.", exp.Message);
+            }
+        }
+
+        [Test]
+        public void CreateRecord_ReadMode()
+        {
+            _memoryStream.Dispose();
+            _memoryStream.Open(Access.Read);
+            try
+            {
+                _storage.CreateRecord("xxx");
+                Assert.Fail();
+            }
+            catch (Exception exp)
+            {
+                Assert.AreEqual("Storage cannot be modified.", exp.Message);
             }
         }
 
@@ -126,6 +143,23 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
+        public void RenameRecord_ReadMode()
+        {
+            _storage.CreateRecord("record");
+            _memoryStream.Dispose();
+            _memoryStream.Open(Access.Read);
+            try
+            {
+                _storage.RenameRecord("record", "new record");
+                Assert.Fail();
+            }
+            catch (Exception exp)
+            {
+                Assert.AreEqual("Storage cannot be modified.", exp.Message);
+            }
+        }
+
+        [Test]
         public void DeleteRecord_NotExists()
         {
             try
@@ -156,6 +190,23 @@ namespace SingleFileStorage.Test.Core
             _storage.CreateRecord("record");
             var exist = _storage.IsRecordExist("record");
             Assert.IsTrue(exist);
+        }
+
+        [Test]
+        public void DeleteRecord_ReadMode()
+        {
+            _storage.CreateRecord("record");
+            _memoryStream.Dispose();
+            _memoryStream.Open(Access.Read);
+            try
+            {
+                _storage.DeleteRecord("record");
+                Assert.Fail();
+            }
+            catch (Exception exp)
+            {
+                Assert.AreEqual("Storage cannot be modified.", exp.Message);
+            }
         }
 
         [Test]
@@ -197,6 +248,24 @@ namespace SingleFileStorage.Test.Core
             var result = _storage.GetAllRecordNames();
             Assert.AreEqual(1, result.Count);
             Assert.AreEqual(maxNameSize, result[0]);
+        }
+
+        [Test]
+        public void WriteToFirstFreeSegment()
+        {
+            var record1Content = GetRandomByteArray(SizeConstants.SegmentData);
+            var record2Content = GetRandomByteArray(SizeConstants.SegmentData);
+            CreateRecordWithContent("record 1", record1Content);
+            var record2 = CreateRecordWithContent("record 2", record2Content);
+            _storage.DeleteRecord("record 1");
+            record2Content = GetRandomByteArray(3 * SizeConstants.SegmentData);
+            record2.Seek(0, SeekOrigin.Begin);
+            record2.Write(record2Content, 0, record2Content.Length);
+            var record2Segments = GetAllRecordSegments("record 2");
+            Assert.AreEqual(3, record2Segments.Count);
+            Assert.AreEqual(1, record2Segments[0].Index);
+            Assert.AreEqual(0, record2Segments[1].Index);
+            Assert.AreEqual(3, record2Segments[2].Index);
         }
     }
 }

@@ -58,26 +58,16 @@ namespace SingleFileStorage.Test.Tools
         public List<Segment> GetAllRecordSegments(string name)
         {
             var result = new List<Segment>();
-
             var position = _memoryStream.Position;
-
             _memoryStream.Seek(0, SeekOrigin.Begin);
             var recordDescription = RecordDescription.FindByName(_memoryStream, name);
-            var segmentPosition = Segment.GetSegmentStartPosition(recordDescription.FirstSegmentIndex);
-            _memoryStream.Seek(segmentPosition, SeekOrigin.Begin);
-            var segment = Segment.CreateFromCurrentPosition(_memoryStream);
+            var segment = Segment.GotoSegmentStartPositionAndCreate(_memoryStream, recordDescription.FirstSegmentIndex);
             result.Add(segment);
-
-            segmentPosition = segment.NextSegmentIndex;
-            while (segmentPosition != Segment.NullValue)
+            while (segment.NextSegmentIndex != Segment.NullValue)
             {
-                segmentPosition = Segment.GetSegmentStartPosition(segmentPosition);
-                _memoryStream.Seek(segmentPosition, SeekOrigin.Begin);
-                segment = Segment.CreateFromCurrentPosition(_memoryStream);
+                segment = Segment.GotoSegmentStartPositionAndCreate(_memoryStream, segment.NextSegmentIndex);
                 result.Add(segment);
-                segmentPosition = segment.NextSegmentIndex;
             }
-
             _memoryStream.Seek(position, SeekOrigin.Begin);
 
             return result;

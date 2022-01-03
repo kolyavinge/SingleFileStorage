@@ -14,7 +14,7 @@ namespace SingleFileStorage.Core
 
         public override bool CanRead => true;
 
-        public override bool CanWrite => _storageFileStream.CanWrite;
+        public override bool CanWrite => _storageFileStream.AccessMode == Access.Modify;
 
         public override bool CanSeek => true;
 
@@ -54,8 +54,7 @@ namespace SingleFileStorage.Core
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            if (_storageFileStream.AccessMode != Access.Modify) throw new InvalidOperationException("Stream cannot be modified.");
-            _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
+            ThrowErrorIfNotModified();
             var iterator = new SegmentReadWriteIterator(_storageFileStream, _currentSegment, count);
             iterator.Iterate((currentSegment, segmentAvailableBytes, totalIteratedBytes) =>
             {
@@ -164,7 +163,7 @@ namespace SingleFileStorage.Core
                 }
                 if (_currentSegment.Contains(_currentSegment.DataStartPosition + _currentSegment.DataLength + offset))
                 {
-                    _storageFileStream.Seek(offset, SeekOrigin.End);
+                    _storageFileStream.Seek(_currentSegment.DataStartPosition + _currentSegment.DataLength + offset, SeekOrigin.Begin);
                 }
                 else
                 {
@@ -212,7 +211,7 @@ namespace SingleFileStorage.Core
 
         public override void SetLength(long value)
         {
-            if (_storageFileStream.AccessMode != Access.Modify) throw new InvalidOperationException("Stream cannot be modified.");
+            ThrowErrorIfNotModified();
             if (value < 0) throw new ArgumentException(nameof(value));
             else if (value == Length) return;
             else if (value < Length)

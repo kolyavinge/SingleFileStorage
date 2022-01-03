@@ -9,8 +9,6 @@ namespace SingleFileStorage.Core
     {
         Access? AccessMode { get; }
 
-        bool CanWrite { get; }
-
         long Position { get; }
 
         long Length { get; }

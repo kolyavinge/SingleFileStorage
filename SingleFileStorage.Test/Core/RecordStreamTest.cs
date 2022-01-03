@@ -437,6 +437,19 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
+        public void Seek_End0()
+        {
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
+            var record = CreateEmptyRecord("record");
+            record.Seek(0, SeekOrigin.End);
+            record.Write(recordContent, 0, 2 * SizeConstants.SegmentData);
+            var recordContentReadResult = new byte[recordContent.Length];
+            record.Seek(0, SeekOrigin.Begin);
+            record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
+            Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
+        }
+
+        [Test]
         public void SetLength_Decrease_0()
         {
             var recordContent = GetRandomByteArray(SizeConstants.SegmentData + SizeConstants.SegmentData / 2);

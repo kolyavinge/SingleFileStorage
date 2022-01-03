@@ -20,6 +20,8 @@ namespace SingleFileStorage.Core
             _fileStream = fileStream ?? throw new ArgumentNullException(nameof(fileStream));
         }
 
+        public Access AccessMode => _fileStream?.AccessMode ?? Access.Read;
+
         public void Dispose()
         {
             _fileStream.Dispose();
@@ -27,6 +29,7 @@ namespace SingleFileStorage.Core
 
         public void CreateRecord(string recordName)
         {
+            ThrowErrorIfNotModified();
             RecordName.ThrowErrorIfInvalid(recordName);
             _fileStream.Seek(0, SeekOrigin.Begin);
             var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
@@ -73,6 +76,7 @@ namespace SingleFileStorage.Core
 
         public void RenameRecord(string oldRecordName, string newRecordName)
         {
+            ThrowErrorIfNotModified();
             RecordName.ThrowErrorIfInvalid(oldRecordName);
             RecordName.ThrowErrorIfInvalid(newRecordName);
             _fileStream.Seek(0, SeekOrigin.Begin);
@@ -87,6 +91,7 @@ namespace SingleFileStorage.Core
 
         public void DeleteRecord(string recordName)
         {
+            ThrowErrorIfNotModified();
             RecordName.ThrowErrorIfInvalid(recordName);
             _fileStream.Seek(0, SeekOrigin.Begin);
             var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
@@ -119,6 +124,11 @@ namespace SingleFileStorage.Core
             }
 
             return result;
+        }
+
+        private void ThrowErrorIfNotModified()
+        {
+            if (_fileStream.AccessMode != Access.Modify) throw new InvalidOperationException("Storage cannot be modified.");
         }
     }
 }

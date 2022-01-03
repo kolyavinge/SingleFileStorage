@@ -12,8 +12,6 @@ namespace SingleFileStorage.Infrastructure
 
         public Access? AccessMode { get; private set; }
 
-        public bool CanWrite => _stream.CanWrite;
-
         public long Position => _stream.Position;
 
         public long Length => _stream.Length;
