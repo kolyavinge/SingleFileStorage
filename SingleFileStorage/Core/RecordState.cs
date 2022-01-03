@@ -21,5 +21,16 @@ namespace SingleFileStorage.Core
         {
             BitMask.SetValue(ref state, 0, 1);
         }
+
+        public static byte Free
+        {
+            get
+            {
+                byte state = 0;
+                SetFree(ref state);
+
+                return state;
+            }
+        }
     }
 }

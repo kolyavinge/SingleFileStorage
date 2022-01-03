@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace SingleFileStorage.Core
 {
@@ -28,6 +29,17 @@ namespace SingleFileStorage.Core
             {
                 return false;
             }
+        }
+
+        public void ForEach(Action<Segment> action)
+        {
+            action(Current);
+            while (MoveNext()) action(Current);
+        }
+
+        public void ForEachExceptFirst(Action<Segment> action)
+        {
+            while (MoveNext()) action(Current);
         }
     }
 }

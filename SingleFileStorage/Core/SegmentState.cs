@@ -60,5 +60,16 @@ namespace SingleFileStorage.Core
                 return state;
             }
         }
+
+        public static byte Free
+        {
+            get
+            {
+                byte state = 0;
+                SetFree(ref state);
+
+                return state;
+            }
+        }
     }
 }

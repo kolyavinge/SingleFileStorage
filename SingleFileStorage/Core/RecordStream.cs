@@ -220,12 +220,7 @@ namespace SingleFileStorage.Core
                 _lastStorageFileStreamPosition = _storageFileStream.Seek(_firstSegment.DataStartPosition, SeekOrigin.Begin);
                 _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _firstSegment, value);
                 var segmentIterator = new SegmentIterator(_storageFileStream, _currentSegment);
-                while (segmentIterator.MoveNext())
-                {
-                    SegmentState.SetFree(ref segmentIterator.Current.State);
-                    _storageFileStream.Seek(-SizeConstants.SegmentNextIndexOrDataLength - SizeConstants.SegmentState, SeekOrigin.Current);
-                    Segment.WriteState(_storageFileStream, segmentIterator.Current.State);
-                }
+                segmentIterator.ForEachExceptFirst(s => Segment.WriteState(_storageFileStream, SegmentState.Free));
                 SegmentState.SetLast(ref _currentSegment.State);
                 _currentSegment.DataLength = (uint)(_storageFileStream.Position - _currentSegment.DataStartPosition);
                 _currentSegment.NextSegmentIndex = Segment.NullValue;

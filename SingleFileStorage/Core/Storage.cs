@@ -91,20 +91,11 @@ namespace SingleFileStorage.Core
             _fileStream.Seek(0, SeekOrigin.Begin);
             var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
             if (recordDescription == null) throw new IOException($"Record '{recordName}' does not exist.");
-            RecordState.SetFree(ref recordDescription.State);
             _fileStream.Seek(recordDescription.StartPosition, SeekOrigin.Begin);
-            RecordDescription.WriteState(_fileStream, recordDescription.State);
+            RecordDescription.WriteState(_fileStream, RecordState.Free);
             var firstSegment = Segment.GotoSegmentStartPositionAndCreate(_fileStream, recordDescription.FirstSegmentIndex);
-            SegmentState.SetFree(ref firstSegment.State);
-            _fileStream.Seek(-SizeConstants.SegmentState, SeekOrigin.Current);
-            Segment.WriteState(_fileStream, firstSegment.State);
             var segmentIterator = new SegmentIterator(_fileStream, firstSegment);
-            while (segmentIterator.MoveNext())
-            {
-                SegmentState.SetFree(ref segmentIterator.Current.State);
-                _fileStream.Seek(-SizeConstants.SegmentState, SeekOrigin.Current);
-                Segment.WriteState(_fileStream, segmentIterator.Current.State);
-            }
+            segmentIterator.ForEach(s => Segment.WriteState(_fileStream, SegmentState.Free));
         }
 
         public List<string> GetAllRecordNames()
