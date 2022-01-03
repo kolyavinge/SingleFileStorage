@@ -78,7 +78,7 @@ namespace SingleFileStorage.Core
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
                 byte recordState = ReadState(storageFileStream);
-                if (!RecordState.IsFree(recordState))
+                if (RecordState.IsUsed(recordState))
                 {
                     var currentRecordNameBytes = new byte[SizeConstants.RecordName];
                     storageFileStream.ReadByteArray(currentRecordNameBytes, 0, SizeConstants.RecordName);

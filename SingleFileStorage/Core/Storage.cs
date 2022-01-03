@@ -105,12 +105,11 @@ namespace SingleFileStorage.Core
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
                 byte recordState = RecordDescription.ReadState(_fileStream);
-                if (!RecordState.IsFree(recordState))
+                if (RecordState.IsUsed(recordState))
                 {
                     var nameBytes = new byte[SizeConstants.RecordName];
                     _fileStream.ReadByteArray(nameBytes, 0, SizeConstants.RecordName);
-                    var name = Encoding.UTF8.GetString(nameBytes, 0, Array.IndexOf<byte>(nameBytes, 0));
-                    result.Add(name);
+                    result.Add(RecordName.GetString(nameBytes));
                     _fileStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
                 }
                 else

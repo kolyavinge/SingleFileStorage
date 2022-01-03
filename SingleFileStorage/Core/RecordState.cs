@@ -12,6 +12,11 @@ namespace SingleFileStorage.Core
             return BitMask.GetValue(state, 0) == 0;
         }
 
+        public static bool IsUsed(byte state)
+        {
+            return BitMask.GetValue(state, 0) == 1;
+        }
+
         public static void SetFree(ref byte state)
         {
             BitMask.SetValue(ref state, 0, 0);

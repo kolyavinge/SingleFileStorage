@@ -188,5 +188,15 @@ namespace SingleFileStorage.Test.Core
             Assert.AreEqual("record 1", result[0]);
             Assert.AreEqual("record 3", result[1]);
         }
+
+        [Test]
+        public void GetAllRecordNames_NameMaxSize()
+        {
+            var maxNameSize = new string('a', SizeConstants.RecordName);
+            _storage.CreateRecord(maxNameSize);
+            var result = _storage.GetAllRecordNames();
+            Assert.AreEqual(1, result.Count);
+            Assert.AreEqual(maxNameSize, result[0]);
+        }
     }
 }

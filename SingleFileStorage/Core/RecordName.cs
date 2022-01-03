@@ -18,7 +18,7 @@ namespace SingleFileStorage.Core
                 throw new ApplicationException("Record name is invalid");
             }
 
-            if (name.Length >= MaxLength)
+            if (name.Length > MaxLength)
             {
                 throw new ApplicationException("Record name is too long");
             }
@@ -30,6 +30,15 @@ namespace SingleFileStorage.Core
             Encoding.UTF8.GetBytes(name, 0, name.Length, nameBytes, 0);
 
             return nameBytes;
+        }
+
+        public static string GetString(byte[] nameBytes)
+        {
+            var zeroIndex = Array.IndexOf<byte>(nameBytes, 0);
+            if (zeroIndex == -1) zeroIndex = SizeConstants.RecordName;
+            var name = Encoding.UTF8.GetString(nameBytes, 0, zeroIndex);
+
+            return name;
         }
 
         public static bool IsEqual(byte[] recordNameBytes1, byte[] recordNameBytes2)
