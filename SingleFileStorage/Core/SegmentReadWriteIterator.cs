@@ -1,4 +1,5 @@
 ﻿using System;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
@@ -6,34 +7,26 @@ namespace SingleFileStorage.Core
     {
         public delegate void IterationDelegate(Segment currentSegment, int segmentAvailableBytes, long totalIteratedBytes);
 
-        private readonly IStorageFileStream _storageFileStream;
+        private readonly StorageFileStream _storageFileStream;
+        private readonly SegmentBuffer _segmentBuffer;
         private readonly Segment _startSegment;
         private readonly long _bytesCount;
 
-        private Segment _lastIteratedSegment;
-        public Segment LastIteratedSegment
-        {
-            get
-            {
-                if (_lastIteratedSegment == null) throw new InvalidOperationException("Iteration has not been finished");
-                return _lastIteratedSegment;
-            }
-        }
+        public Segment LastIteratedSegment;
+        public long RemainingBytes;
+        public long TotalIteratedBytes;
 
-        public long RemainingBytes { get; private set; }
-
-        public long TotalIteratedBytes { get; private set; }
-
-        public SegmentReadWriteIterator(IStorageFileStream storageFileStream, Segment startSegment, long bytesCount)
+        public SegmentReadWriteIterator(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment startSegment, long bytesCount)
         {
             _storageFileStream = storageFileStream;
+            _segmentBuffer = segmentBuffer;
             _startSegment = startSegment;
             _bytesCount = bytesCount;
         }
 
         public void Iterate(IterationDelegate iterationFunc)
         {
-            var iterator = new SegmentIterator(_storageFileStream, _startSegment);
+            var iterator = new SegmentIterator(_storageFileStream, _segmentBuffer, _startSegment);
             TotalIteratedBytes = 0;
             RemainingBytes = _bytesCount;
             while (RemainingBytes > 0)
@@ -55,7 +48,7 @@ namespace SingleFileStorage.Core
                     if (!iterator.MoveNext()) break;
                 }
             }
-            _lastIteratedSegment = iterator.Current;
+            LastIteratedSegment = iterator.Current;
         }
     }
 }

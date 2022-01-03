@@ -134,9 +134,10 @@ namespace SingleFileStorage.Test.Core
         public void RenameRecord()
         {
             var recordContent = GetRandomByteArray(SizeConstants.SegmentData);
-            CreateRecordWithContent("record", recordContent);
+            var record = CreateRecordWithContent("record", recordContent);
+            record.Dispose();
             _storage.RenameRecord("record", "new record");
-            var record = _storage.OpenRecord("new record");
+            record = _storage.OpenRecord("new record");
             var recordContentReadResult = new byte[recordContent.Length];
             record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
             Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
@@ -251,20 +252,22 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
-        public void WriteToFirstFreeSegment()
+        public void SegmentsAppendToEnd()
         {
             var record1Content = GetRandomByteArray(SizeConstants.SegmentData);
             var record2Content = GetRandomByteArray(SizeConstants.SegmentData);
-            CreateRecordWithContent("record 1", record1Content);
+            var record1 = CreateRecordWithContent("record 1", record1Content);
+            record1.Dispose();
             var record2 = CreateRecordWithContent("record 2", record2Content);
             _storage.DeleteRecord("record 1");
             record2Content = GetRandomByteArray(3 * SizeConstants.SegmentData);
             record2.Seek(0, SeekOrigin.Begin);
             record2.Write(record2Content, 0, record2Content.Length);
+            record2.Dispose();
             var record2Segments = GetAllRecordSegments("record 2");
             Assert.AreEqual(3, record2Segments.Count);
             Assert.AreEqual(1, record2Segments[0].Index);
-            Assert.AreEqual(0, record2Segments[1].Index);
+            Assert.AreEqual(2, record2Segments[1].Index);
             Assert.AreEqual(3, record2Segments[2].Index);
         }
     }

@@ -1,17 +1,20 @@
 ﻿using System;
 using System.IO;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
     internal class SegmentIterator
     {
-        private readonly IStorageFileStream _storageFileStream;
+        private readonly StorageFileStream _storageFileStream;
+        private readonly SegmentBuffer _segmentBuffer;
 
-        public Segment Current { get; private set; }
+        public Segment Current;
 
-        public SegmentIterator(IStorageFileStream storageFileStream, Segment startSegment)
+        public SegmentIterator(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment startSegment)
         {
             _storageFileStream = storageFileStream;
+            _segmentBuffer = segmentBuffer;
             Current = startSegment;
         }
 
@@ -19,7 +22,7 @@ namespace SingleFileStorage.Core
         {
             if (!SegmentState.IsLast(Current.State))
             {
-                var nextSegment = Segment.GotoSegmentStartPositionAndCreate(_storageFileStream, Current.NextSegmentIndex);
+                var nextSegment = _segmentBuffer.GetByIndex(_storageFileStream, Current.NextSegmentIndex);
                 _storageFileStream.Seek(nextSegment.DataStartPosition, SeekOrigin.Begin);
                 Current = nextSegment;
 

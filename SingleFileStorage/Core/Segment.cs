@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
@@ -7,27 +8,27 @@ namespace SingleFileStorage.Core
     {
         public const uint NullValue = UInt32.MaxValue;
 
-        public static byte ReadState(IStorageFileStream storageFileStream)
+        public static byte ReadState(StorageFileStream storageFileStream)
         {
             return storageFileStream.ReadByte();
         }
 
-        public static void WriteState(IStorageFileStream storageFileStream, byte state)
+        public static void WriteState(StorageFileStream storageFileStream, byte state)
         {
             storageFileStream.WriteByte(state);
         }
 
-        public static uint ReadNextSegmentIndexOrDataLength(IStorageFileStream storageFileStream)
+        public static uint ReadNextSegmentIndexOrDataLength(StorageFileStream storageFileStream)
         {
             return storageFileStream.ReadUInt32();
         }
 
-        public static void WriteNextSegmentIndexOrDataLength(IStorageFileStream storageFileStream, uint value)
+        public static void WriteNextSegmentIndexOrDataLength(StorageFileStream storageFileStream, uint value)
         {
             storageFileStream.WriteUInt32(value);
         }
 
-        private static void WriteData(IStorageFileStream storageFileStream, byte[] buffer, int offset, int count)
+        private static void WriteData(StorageFileStream storageFileStream, byte[] buffer, int offset, int count)
         {
             if (count > SizeConstants.SegmentData) throw new ArgumentException($"Count must be less or equal {SizeConstants.SegmentData}");
             storageFileStream.WriteByteArray(buffer, offset, count);
@@ -38,7 +39,7 @@ namespace SingleFileStorage.Core
             }
         }
 
-        public static void AppendEmptySegment(IStorageFileStream storageFileStream, byte state)
+        public static void AppendEmptySegment(StorageFileStream storageFileStream, byte state)
         {
             Segment.WriteState(storageFileStream, state);
             Segment.WriteNextSegmentIndexOrDataLength(storageFileStream, 0);
@@ -46,21 +47,21 @@ namespace SingleFileStorage.Core
             Segment.WriteData(storageFileStream, emptySegmentDataBytes, 0, emptySegmentDataBytes.Length);
         }
 
-        public static void AppendSegment(IStorageFileStream storageFileStream, byte state, uint nextSegmentIndexOrDataLength, byte[] buffer, int offset, int count)
+        public static void AppendSegment(StorageFileStream storageFileStream, byte state, uint nextSegmentIndexOrDataLength, byte[] buffer, int offset, int count)
         {
             Segment.WriteState(storageFileStream, state);
             Segment.WriteNextSegmentIndexOrDataLength(storageFileStream, nextSegmentIndexOrDataLength);
             Segment.WriteData(storageFileStream, buffer, offset, count);
         }
 
-        public static void AppendSegment(IStorageFileStream storageFileStream, byte state, uint nextSegmentIndexOrDataLength, byte[] buffer, int offset, int count, out Segment appendedSegment)
+        public static void AppendSegment(StorageFileStream storageFileStream, byte state, uint nextSegmentIndexOrDataLength, byte[] buffer, int offset, int count, out Segment appendedSegment)
         {
             uint index = GetSegmentIndex(storageFileStream.Position);
             AppendSegment(storageFileStream, state, nextSegmentIndexOrDataLength, buffer, offset, count);
             appendedSegment = new Segment(index, state, nextSegmentIndexOrDataLength);
         }
 
-        public static uint FindNextFreeSegmentIndex(IStorageFileStream storageFileStream)
+        public static uint FindNextFreeSegmentIndex(StorageFileStream storageFileStream)
         {
             uint segmentIndex = GetSegmentIndex(storageFileStream.Position);
             uint segmentsCount = GetSegmentsCount(storageFileStream.Length);
@@ -100,7 +101,7 @@ namespace SingleFileStorage.Core
             return SizeConstants.StorageDescription + SizeConstants.Segment * segmentIndex;
         }
 
-        public static Segment CreateFromCurrentPosition(IStorageFileStream storageFileStream)
+        public static Segment CreateFromCurrentPosition(StorageFileStream storageFileStream)
         {
             uint index = GetSegmentIndex(storageFileStream.Position);
             byte state = ReadState(storageFileStream);
@@ -110,7 +111,7 @@ namespace SingleFileStorage.Core
             return segment;
         }
 
-        public static Segment GotoSegmentStartPositionAndCreate(IStorageFileStream storageFileStream, uint segmentIndex)
+        public static Segment GotoSegmentStartPositionAndCreate(StorageFileStream storageFileStream, uint segmentIndex)
         {
             var segmentStartPosition = GetSegmentStartPosition(segmentIndex);
             storageFileStream.Seek(segmentStartPosition, SeekOrigin.Begin);
@@ -119,15 +120,15 @@ namespace SingleFileStorage.Core
             return segment;
         }
 
-        public uint Index;
+        public readonly uint Index;
         public byte State;
         public uint NextSegmentIndex;
         public uint DataLength;
-        public long StartPosition;
-
-        public long EndPosition => StartPosition + SizeConstants.Segment;
-        public long DataStartPosition => StartPosition + SizeConstants.SegmentState + SizeConstants.SegmentNextIndexOrDataLength;
-        public long DataEndPosition => DataStartPosition + SizeConstants.SegmentData;
+        public readonly long StartPosition;
+        public readonly long EndPosition;
+        public readonly long DataStartPosition;
+        public readonly long DataEndPosition;
+        public bool IsModified;
 
         private Segment(uint index, byte state, uint nextSegmentIndexOrDataLength)
         {
@@ -144,6 +145,9 @@ namespace SingleFileStorage.Core
                 DataLength = SizeConstants.SegmentData;
             }
             StartPosition = SizeConstants.StorageDescription + SizeConstants.Segment * Index;
+            EndPosition = StartPosition + SizeConstants.Segment;
+            DataStartPosition = StartPosition + SizeConstants.SegmentState + SizeConstants.SegmentNextIndexOrDataLength;
+            DataEndPosition = DataStartPosition + SizeConstants.SegmentData;
         }
 
         public bool Contains(long position)

@@ -1,41 +1,36 @@
 ﻿using System;
 using System.IO;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
     internal class SegmentPositionIterator
     {
-        public static Segment IterateAndGetLastSegment(IStorageFileStream storageFileStream, Segment startSegment, long position)
+        public static Segment IterateAndGetLastSegment(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment startSegment, long position)
         {
-            var iterator = new SegmentPositionIterator(storageFileStream, startSegment, position);
+            var iterator = new SegmentPositionIterator(storageFileStream, segmentBuffer, startSegment, position);
             iterator.Iterate();
             return iterator.LastIteratedSegment;
         }
 
-        private readonly IStorageFileStream _storageFileStream;
+        private readonly StorageFileStream _storageFileStream;
+        private readonly SegmentBuffer _segmentBuffer;
         private readonly Segment _startSegment;
         private readonly long _position;
 
-        private Segment _lastIteratedSegment;
-        public Segment LastIteratedSegment
-        {
-            get
-            {
-                if (_lastIteratedSegment == null) throw new InvalidOperationException("Iteration has not been finished");
-                return _lastIteratedSegment;
-            }
-        }
+        public Segment LastIteratedSegment;
 
-        public SegmentPositionIterator(IStorageFileStream storageFileStream, Segment startSegment, long position)
+        public SegmentPositionIterator(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment startSegment, long position)
         {
             _storageFileStream = storageFileStream;
+            _segmentBuffer = segmentBuffer;
             _startSegment = startSegment;
             _position = position;
         }
 
         public void Iterate()
         {
-            var iterator = new SegmentIterator(_storageFileStream, _startSegment);
+            var iterator = new SegmentIterator(_storageFileStream, _segmentBuffer, _startSegment);
             long remainingBytes = _position;
             while (remainingBytes > 0)
             {
@@ -50,7 +45,7 @@ namespace SingleFileStorage.Core
                     if (!iterator.MoveNext()) break;
                 }
             }
-            _lastIteratedSegment = iterator.Current;
+            LastIteratedSegment = iterator.Current;
         }
     }
 }

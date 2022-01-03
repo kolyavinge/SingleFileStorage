@@ -113,8 +113,8 @@ namespace SingleFileStorage.Test.Core
             record.Write(recordContent, 100, SizeConstants.SegmentData - 100);
             record.Write(recordContent, SizeConstants.SegmentData, SizeConstants.SegmentData);
             record.Write(recordContent, 2 * SizeConstants.SegmentData, SizeConstants.SegmentData / 2);
-            var recordContentReadResult = new byte[recordContent.Length];
             record.Seek(0, SeekOrigin.Begin);
+            var recordContentReadResult = new byte[recordContent.Length];
             record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
             Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
         }
@@ -122,44 +122,47 @@ namespace SingleFileStorage.Test.Core
         [Test]
         public void RecordDescription()
         {
+            var recordContent = GetEmptyArray(2 * SizeConstants.SegmentData);
             _storage.CreateRecord("record");
             var record = _storage.OpenRecord("record");
-            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
+            record.Dispose();
 
             var recordDescription = GetRecordDescription("record");
             Assert.AreEqual(0, recordDescription.FirstSegmentIndex);
             Assert.AreEqual(0, recordDescription.LastSegmentIndex);
             Assert.AreEqual(0, recordDescription.RecordLength);
 
+            record = _storage.OpenRecord("record");
             record.Write(recordContent, 0, 100);
+            record.Dispose();
             recordDescription = GetRecordDescription("record");
             Assert.AreEqual(0, recordDescription.FirstSegmentIndex);
             Assert.AreEqual(0, recordDescription.LastSegmentIndex);
             Assert.AreEqual(100, recordDescription.RecordLength);
 
-            record.Write(recordContent, 100, SizeConstants.SegmentData - 100);
+            record = _storage.OpenRecord("record");
+            record.Write(recordContent, 0, SizeConstants.SegmentData);
+            record.Dispose();
             recordDescription = GetRecordDescription("record");
             Assert.AreEqual(0, recordDescription.FirstSegmentIndex);
             Assert.AreEqual(0, recordDescription.LastSegmentIndex);
             Assert.AreEqual(SizeConstants.SegmentData, recordDescription.RecordLength);
 
-            record.Write(recordContent, SizeConstants.SegmentData, SizeConstants.SegmentData);
+            record = _storage.OpenRecord("record");
+            record.Write(recordContent, 0, 2 * SizeConstants.SegmentData);
+            record.Dispose();
             recordDescription = GetRecordDescription("record");
             Assert.AreEqual(0, recordDescription.FirstSegmentIndex);
             Assert.AreEqual(1, recordDescription.LastSegmentIndex);
             Assert.AreEqual(2 * SizeConstants.SegmentData, recordDescription.RecordLength);
 
-            record.Write(recordContent, 2 * SizeConstants.SegmentData, SizeConstants.SegmentData / 2);
-            recordDescription = GetRecordDescription("record");
-            Assert.AreEqual(0, recordDescription.FirstSegmentIndex);
-            Assert.AreEqual(2, recordDescription.LastSegmentIndex);
-            Assert.AreEqual(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2, recordDescription.RecordLength);
-
+            record = _storage.OpenRecord("record");
             record.Write(recordContent, 0, 100);
+            record.Dispose();
             recordDescription = GetRecordDescription("record");
             Assert.AreEqual(0, recordDescription.FirstSegmentIndex);
-            Assert.AreEqual(2, recordDescription.LastSegmentIndex);
-            Assert.AreEqual(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2 + 100, recordDescription.RecordLength);
+            Assert.AreEqual(1, recordDescription.LastSegmentIndex);
+            Assert.AreEqual(2 * SizeConstants.SegmentData, recordDescription.RecordLength);
         }
 
         [Test]
@@ -310,7 +313,8 @@ namespace SingleFileStorage.Test.Core
         public void Segments_1()
         {
             var recordContent = GetRandomByteArray(100);
-            CreateRecordWithContent("record", recordContent);
+            var record = CreateRecordWithContent("record", recordContent);
+            record.Dispose();
             var segments = GetAllRecordSegments("record");
             Assert.AreEqual(1, segments.Count);
             Assert.AreEqual(SegmentState.UsedAndLast, segments[0].State);
@@ -321,7 +325,8 @@ namespace SingleFileStorage.Test.Core
         public void Segments_2()
         {
             var recordContent = GetRandomByteArray(SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
-            CreateRecordWithContent("record", recordContent);
+            var record = CreateRecordWithContent("record", recordContent);
+            record.Dispose();
             var segments = GetAllRecordSegments("record");
             Assert.AreEqual(2, segments.Count);
             Assert.AreEqual(SegmentState.UsedAndChained, segments[0].State);
@@ -515,6 +520,7 @@ namespace SingleFileStorage.Test.Core
             var recordContent = GetRandomByteArray(SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
             var record = CreateRecordWithContent("record", recordContent);
             record.SetLength(SizeConstants.SegmentData + SizeConstants.SegmentData / 2 - 100);
+            record.Dispose();
             var segments = GetAllRecordSegments("record");
             Assert.AreEqual(2, segments.Count);
             Assert.AreEqual(SegmentState.UsedAndChained, segments[0].State);

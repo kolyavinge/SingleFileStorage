@@ -1,23 +1,24 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
     internal class RecordStream : Stream
     {
-        private readonly IStorageFileStream _storageFileStream;
+        private readonly StorageFileStream _storageFileStream;
+        private readonly bool _canModify;
         private readonly RecordDescription _recordDescription;
+        private readonly SegmentBuffer _segmentBuffer;
         private readonly Segment _firstSegment;
         private Segment _currentSegment;
         private long _position;
         private long _lastStorageFileStreamPosition;
 
         public override bool CanRead => true;
-
-        public override bool CanWrite => _storageFileStream.AccessMode == Access.Modify;
-
+        public override bool CanWrite { get; }
         public override bool CanSeek => true;
-
         public override long Length => _recordDescription.RecordLength;
 
         public override long Position
@@ -26,20 +27,31 @@ namespace SingleFileStorage.Core
             set => Seek(value, SeekOrigin.Begin);
         }
 
-        public RecordStream(IStorageFileStream storageFileStream, RecordDescription recordDescription)
+        public RecordStream(StorageFileStream storageFileStream, RecordDescription recordDescription)
         {
             _storageFileStream = storageFileStream;
+            _canModify = storageFileStream.AccessMode == Access.Modify; // для оптимизации ThrowErrorIfNotModified()
+            CanWrite = _canModify;
             _recordDescription = recordDescription;
-            _firstSegment = Segment.GotoSegmentStartPositionAndCreate(_storageFileStream, _recordDescription.FirstSegmentIndex);
+            _segmentBuffer = new SegmentBuffer();
+            _firstSegment = _segmentBuffer.GetByIndex(_storageFileStream, _recordDescription.FirstSegmentIndex);
             _lastStorageFileStreamPosition = _firstSegment.DataStartPosition;
             _currentSegment = _firstSegment;
         }
 
+        public override int ReadByte()
+        {
+            return base.ReadByte();
+        }
+
         public override int Read(byte[] buffer, int offset, int count)
         {
-            _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
+            if (_storageFileStream.Position != _lastStorageFileStreamPosition)
+            {
+                _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
+            }
             int totalReaded = 0;
-            var iterator = new SegmentReadWriteIterator(_storageFileStream, _currentSegment, count);
+            var iterator = new SegmentReadWriteIterator(_storageFileStream, _segmentBuffer, _currentSegment, count);
             iterator.Iterate((currentSegment, segmentAvailableBytes, totalIteratedBytes) =>
             {
                 int maxBytesToRead = (int)Math.Min(currentSegment.DataLength, segmentAvailableBytes);
@@ -52,10 +64,19 @@ namespace SingleFileStorage.Core
             return totalReaded;
         }
 
+        public override void WriteByte(byte value)
+        {
+            base.WriteByte(value);
+        }
+
         public override void Write(byte[] buffer, int offset, int count)
         {
             ThrowErrorIfNotModified();
-            var iterator = new SegmentReadWriteIterator(_storageFileStream, _currentSegment, count);
+            if (_storageFileStream.Position != _lastStorageFileStreamPosition)
+            {
+                _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
+            }
+            var iterator = new SegmentReadWriteIterator(_storageFileStream, _segmentBuffer, _currentSegment, count);
             iterator.Iterate((currentSegment, segmentAvailableBytes, totalIteratedBytes) =>
             {
                 _storageFileStream.WriteByteArray(buffer, offset + (int)totalIteratedBytes, segmentAvailableBytes);
@@ -71,14 +92,12 @@ namespace SingleFileStorage.Core
                     if (newDataLength > _currentSegment.DataLength)
                     {
                         _currentSegment.DataLength = newDataLength;
-                        _storageFileStream.Seek(_currentSegment.StartPosition + SizeConstants.SegmentState, SeekOrigin.Begin);
-                        Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, _currentSegment.DataLength);
+                        _currentSegment.IsModified = true;
                     }
                     if (_position > _recordDescription.RecordLength)
                     {
                         _recordDescription.RecordLength = (uint)_position;
-                        _storageFileStream.Seek(_recordDescription.RecordLengthStartPosition, SeekOrigin.Begin);
-                        RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
+                        _recordDescription.IsModified = true;
                     }
                 }
             }
@@ -88,9 +107,7 @@ namespace SingleFileStorage.Core
                 SegmentState.SetChained(ref _currentSegment.State);
                 _currentSegment.DataLength = SizeConstants.SegmentData;
                 _currentSegment.NextSegmentIndex = lastSegmentIndex + 1;
-                _storageFileStream.Seek(_currentSegment.StartPosition, SeekOrigin.Begin);
-                Segment.WriteState(_storageFileStream, _currentSegment.State);
-                Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, _currentSegment.NextSegmentIndex);
+                _currentSegment.IsModified = true;
                 _storageFileStream.Seek(0, SeekOrigin.End);
                 int currentOffset = offset + (int)iterator.TotalIteratedBytes;
                 long remainingBytes = iterator.RemainingBytes;
@@ -103,12 +120,12 @@ namespace SingleFileStorage.Core
                 }
                 lastSegmentIndex++;
                 Segment.AppendSegment(_storageFileStream, SegmentState.UsedAndLast, (uint)remainingBytes, buffer, currentOffset, (int)remainingBytes, out _currentSegment);
+                _currentSegment.IsModified = true;
                 _lastStorageFileStreamPosition = _currentSegment.DataStartPosition + (int)remainingBytes;
                 _recordDescription.LastSegmentIndex = _currentSegment.Index;
                 _recordDescription.RecordLength = (uint)_position;
-                _storageFileStream.Seek(_recordDescription.LastSegmentIndexPosition, SeekOrigin.Begin);
-                RecordDescription.WriteLastSegmentIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
-                RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
+                _recordDescription.IsModified = true;
+                _segmentBuffer.Add(_currentSegment);
             }
         }
 
@@ -126,7 +143,7 @@ namespace SingleFileStorage.Core
                 else
                 {
                     _storageFileStream.Seek(_currentSegment.DataStartPosition, SeekOrigin.Begin);
-                    _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _currentSegment, newPosition);
+                    _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _currentSegment, newPosition);
                 }
             }
             else if (origin == SeekOrigin.Current && offset > 0)
@@ -138,7 +155,7 @@ namespace SingleFileStorage.Core
                 }
                 else
                 {
-                    _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _currentSegment, offset);
+                    _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _currentSegment, offset);
                 }
             }
             else if (origin == SeekOrigin.Current && offset < 0)
@@ -152,14 +169,14 @@ namespace SingleFileStorage.Core
                 {
                     _currentSegment = _firstSegment;
                     _storageFileStream.Seek(_currentSegment.DataStartPosition, SeekOrigin.Begin);
-                    _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _currentSegment, newPosition);
+                    _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _currentSegment, newPosition);
                 }
             }
             else if (origin == SeekOrigin.End)
             {
                 if (!SegmentState.IsLast(_currentSegment.State))
                 {
-                    _currentSegment = Segment.GotoSegmentStartPositionAndCreate(_storageFileStream, _recordDescription.LastSegmentIndex);
+                    _currentSegment = _segmentBuffer.GetByIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
                 }
                 if (_currentSegment.Contains(_currentSegment.DataStartPosition + _currentSegment.DataLength + offset))
                 {
@@ -169,7 +186,7 @@ namespace SingleFileStorage.Core
                 {
                     _currentSegment = _firstSegment;
                     _storageFileStream.Seek(_currentSegment.DataStartPosition, SeekOrigin.Begin);
-                    _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _currentSegment, newPosition);
+                    _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _currentSegment, newPosition);
                 }
             }
             else throw new ArgumentException(nameof(origin));
@@ -217,8 +234,8 @@ namespace SingleFileStorage.Core
             else if (value < Length)
             {
                 _lastStorageFileStreamPosition = _storageFileStream.Seek(_firstSegment.DataStartPosition, SeekOrigin.Begin);
-                _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _firstSegment, value);
-                var segmentIterator = new SegmentIterator(_storageFileStream, _currentSegment);
+                _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _firstSegment, value);
+                var segmentIterator = new SegmentIterator(_storageFileStream, _segmentBuffer, _currentSegment);
                 segmentIterator.ForEachExceptFirst(s => Segment.WriteState(_storageFileStream, SegmentState.Free));
                 SegmentState.SetLast(ref _currentSegment.State);
                 _currentSegment.DataLength = (uint)(_storageFileStream.Position - _currentSegment.DataStartPosition);
@@ -240,5 +257,36 @@ namespace SingleFileStorage.Core
         }
 
         public override void Flush() { }
+
+        public override void Close()
+        {
+            if (_recordDescription.IsModified)
+            {
+                _storageFileStream.Seek(_recordDescription.LastSegmentIndexPosition, SeekOrigin.Begin);
+                RecordDescription.WriteLastSegmentIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
+                RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
+            }
+
+            foreach (var segment in _segmentBuffer.GetAll().Where(x => x.IsModified))
+            {
+                _storageFileStream.Seek(segment.StartPosition, SeekOrigin.Begin);
+                Segment.WriteState(_storageFileStream, segment.State);
+                if (SegmentState.IsLast(segment.State))
+                {
+                    Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, segment.DataLength);
+                }
+                else
+                {
+                    Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, segment.NextSegmentIndex);
+                }
+            }
+
+            base.Close();
+        }
+
+        private void ThrowErrorIfNotModified()
+        {
+            if (!_canModify) throw new InvalidOperationException("Stream cannot be modified.");
+        }
     }
 }

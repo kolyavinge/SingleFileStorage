@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
 using SingleFileStorage;
 
 namespace StarterApp
@@ -7,12 +9,29 @@ namespace StarterApp
     {
         static void Main(string[] args)
         {
-            var sequence = 1;
+            var sequence = 0;
+            var hugeWrite = 1;
+            var hugeRead = 0;
+
+            var sw = Stopwatch.StartNew();
 
             if (sequence == 1)
             {
                 Sequence();
             }
+            if (hugeWrite == 1)
+            {
+                HugeWrite();
+            }
+            if (hugeRead == 1)
+            {
+                HugeRead();
+            }
+
+            sw.Stop();
+            Console.WriteLine($"Total: {sw.Elapsed}");
+            Console.WriteLine("done");
+            Console.ReadKey();
         }
 
         private static void Sequence()
@@ -51,6 +70,45 @@ namespace StarterApp
                 File.WriteAllBytes("image1_from_storage.jpg", image1RecordReadContent);
                 File.Delete("image2_from_storage.jpg");
                 File.WriteAllBytes("image2_from_storage.jpg", image2RecordReadContent);
+            }
+        }
+
+        private static void HugeWrite()
+        {
+            File.Delete("hugeWrite.storage");
+            StorageFile.Create("hugeWrite.storage");
+            using (var storage = StorageFile.Open("hugeWrite.storage", Access.Modify))
+            {
+                storage.CreateRecord("record");
+                using (var record = storage.OpenRecord("record"))
+                {
+                    for (int i = 0; i < 10000000; i++)
+                    {
+                        record.WriteByte(255);
+                    }
+                }
+            }
+        }
+
+        private static void HugeRead()
+        {
+            File.Delete("hugeRead.storage");
+            StorageFile.Create("hugeRead.storage");
+            using (var storage = StorageFile.Open("hugeRead.storage", Access.Modify))
+            {
+                storage.CreateRecord("record");
+                var buffer = new byte[10000000];
+                using (var record = storage.OpenRecord("record"))
+                {
+                    record.Write(buffer, 0, buffer.Length);
+                }
+                using (var record = storage.OpenRecord("record"))
+                {
+                    for (int i = 0; i < buffer.Length; i++)
+                    {
+                        record.ReadByte();
+                    }
+                }
             }
         }
     }

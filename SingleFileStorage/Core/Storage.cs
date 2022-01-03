@@ -2,20 +2,21 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
     internal class Storage : IStorage
     {
-        internal static void InitDescription(IStorageFileStream fileStream)
+        internal static void InitDescription(StorageFileStream fileStream)
         {
             var emptyDescriptionBytes = new byte[SizeConstants.StorageDescription];
             fileStream.WriteByteArray(emptyDescriptionBytes, 0, emptyDescriptionBytes.Length);
         }
 
-        private readonly IStorageFileStream _fileStream;
+        private readonly StorageFileStream _fileStream;
 
-        public Storage(IStorageFileStream fileStream)
+        public Storage(StorageFileStream fileStream)
         {
             _fileStream = fileStream ?? throw new ArgumentNullException(nameof(fileStream));
         }
@@ -99,7 +100,7 @@ namespace SingleFileStorage.Core
             _fileStream.Seek(recordDescription.StartPosition, SeekOrigin.Begin);
             RecordDescription.WriteState(_fileStream, RecordState.Free);
             var firstSegment = Segment.GotoSegmentStartPositionAndCreate(_fileStream, recordDescription.FirstSegmentIndex);
-            var segmentIterator = new SegmentIterator(_fileStream, firstSegment);
+            var segmentIterator = new SegmentIterator(_fileStream, new SegmentBuffer(), firstSegment);
             segmentIterator.ForEach(s => Segment.WriteState(_fileStream, SegmentState.Free));
         }
 

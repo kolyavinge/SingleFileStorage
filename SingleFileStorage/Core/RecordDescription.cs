@@ -1,57 +1,57 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
     internal class RecordDescription
     {
-        public static byte ReadState(IStorageFileStream storageFileStream)
+        public static byte ReadState(StorageFileStream storageFileStream)
         {
             return storageFileStream.ReadByte();
         }
 
-        public static uint ReadFirstSegmentIndex(IStorageFileStream storageFileStream)
+        public static uint ReadFirstSegmentIndex(StorageFileStream storageFileStream)
         {
             return storageFileStream.ReadUInt32();
         }
 
-        public static uint ReadLastSegmentIndex(IStorageFileStream storageFileStream)
+        public static uint ReadLastSegmentIndex(StorageFileStream storageFileStream)
         {
             return storageFileStream.ReadUInt32();
         }
 
-        public static uint ReadLength(IStorageFileStream storageFileStream)
+        public static uint ReadLength(StorageFileStream storageFileStream)
         {
             return storageFileStream.ReadUInt32();
         }
 
-        public static void WriteState(IStorageFileStream storageFileStream, byte state)
+        public static void WriteState(StorageFileStream storageFileStream, byte state)
         {
             storageFileStream.WriteByte(state);
         }
 
-        public static void WriteFirstSegmentIndex(IStorageFileStream storageFileStream, uint firstSegmentIndex)
+        public static void WriteFirstSegmentIndex(StorageFileStream storageFileStream, uint firstSegmentIndex)
         {
             storageFileStream.WriteUInt32(firstSegmentIndex);
         }
 
-        public static void WriteLastSegmentIndex(IStorageFileStream storageFileStream, uint lastSegmentIndex)
+        public static void WriteLastSegmentIndex(StorageFileStream storageFileStream, uint lastSegmentIndex)
         {
             storageFileStream.WriteUInt32(lastSegmentIndex);
         }
 
-        public static void WriteLength(IStorageFileStream storageFileStream, uint length)
+        public static void WriteLength(StorageFileStream storageFileStream, uint length)
         {
             storageFileStream.WriteUInt32(length);
         }
 
-        public static void WriteName(IStorageFileStream storageFileStream, string recordName)
+        public static void WriteName(StorageFileStream storageFileStream, string recordName)
         {
             var nameBytes = RecordName.GetBytes(recordName);
             storageFileStream.WriteByteArray(nameBytes, 0, nameBytes.Length);
         }
 
-        public static void FindFree(IStorageFileStream storageFileStream)
+        public static void FindFree(StorageFileStream storageFileStream)
         {
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
@@ -72,7 +72,7 @@ namespace SingleFileStorage.Core
             throw new IOException("Cannot find any free record description.");
         }
 
-        public static RecordDescription FindByName(IStorageFileStream storageFileStream, string recordName)
+        public static RecordDescription FindByName(StorageFileStream storageFileStream, string recordName)
         {
             var recordNameBytes = RecordName.GetBytes(recordName);
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
@@ -84,7 +84,7 @@ namespace SingleFileStorage.Core
                     storageFileStream.ReadByteArray(currentRecordNameBytes, 0, SizeConstants.RecordName);
                     if (RecordName.IsEqual(recordNameBytes, currentRecordNameBytes))
                     {
-                        return MakeStartFromFirstSegmentIndex(storageFileStream, recordState);
+                        return new RecordDescription(storageFileStream, recordState);
                     }
                     storageFileStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
                 }
@@ -97,38 +97,24 @@ namespace SingleFileStorage.Core
             return null;
         }
 
-        private static RecordDescription MakeStartFromFirstSegmentIndex(IStorageFileStream storageFileStream, byte state)
-        {
-            return new RecordDescription
-            {
-                StartPosition = storageFileStream.Position - (SizeConstants.RecordState + SizeConstants.RecordName),
-                State = state,
-                FirstSegmentIndex = ReadFirstSegmentIndex(storageFileStream),
-                LastSegmentIndex = ReadLastSegmentIndex(storageFileStream),
-                RecordLength = ReadLength(storageFileStream)
-            };
-        }
-
-        public long StartPosition;
+        public readonly long StartPosition;
         public byte State;
-        public uint FirstSegmentIndex;
+        public readonly uint FirstSegmentIndex;
         public uint LastSegmentIndex;
         public uint RecordLength;
+        public readonly long LastSegmentIndexPosition;
+        public readonly long RecordLengthStartPosition;
+        public bool IsModified;
 
-        public long LastSegmentIndexPosition
+        private RecordDescription(StorageFileStream storageFileStream, byte state)
         {
-            get
-            {
-                return StartPosition + SizeConstants.RecordState + SizeConstants.RecordName + SizeConstants.RecordFirstSegmentIndex;
-            }
-        }
-
-        public long RecordLengthStartPosition
-        {
-            get
-            {
-                return StartPosition + SizeConstants.RecordState + SizeConstants.RecordName + SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex;
-            }
+            StartPosition = storageFileStream.Position - (SizeConstants.RecordState + SizeConstants.RecordName);
+            State = state;
+            FirstSegmentIndex = ReadFirstSegmentIndex(storageFileStream);
+            LastSegmentIndex = ReadLastSegmentIndex(storageFileStream);
+            RecordLength = ReadLength(storageFileStream);
+            LastSegmentIndexPosition = StartPosition + SizeConstants.RecordState + SizeConstants.RecordName + SizeConstants.RecordFirstSegmentIndex;
+            RecordLengthStartPosition = StartPosition + SizeConstants.RecordState + SizeConstants.RecordName + SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex;
         }
     }
 }
