@@ -157,5 +157,36 @@ namespace SingleFileStorage.Test.Core
             var exist = _storage.IsRecordExist("record");
             Assert.IsTrue(exist);
         }
+
+        [Test]
+        public void GetAllRecordNames_Empty()
+        {
+            var result = _storage.GetAllRecordNames();
+            Assert.AreEqual(0, result.Count);
+        }
+
+        [Test]
+        public void GetAllRecordNames_1()
+        {
+            _storage.CreateRecord("record 1");
+            _storage.CreateRecord("record 2");
+            var result = _storage.GetAllRecordNames();
+            Assert.AreEqual(2, result.Count);
+            Assert.AreEqual("record 1", result[0]);
+            Assert.AreEqual("record 2", result[1]);
+        }
+
+        [Test]
+        public void GetAllRecordNames_2()
+        {
+            _storage.CreateRecord("record 1");
+            _storage.CreateRecord("record 2");
+            _storage.DeleteRecord("record 2");
+            _storage.CreateRecord("record 3");
+            var result = _storage.GetAllRecordNames();
+            Assert.AreEqual(2, result.Count);
+            Assert.AreEqual("record 1", result[0]);
+            Assert.AreEqual("record 3", result[1]);
+        }
     }
 }

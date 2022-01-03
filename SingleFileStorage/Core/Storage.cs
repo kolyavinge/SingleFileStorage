@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace SingleFileStorage.Core
 {
@@ -103,6 +105,30 @@ namespace SingleFileStorage.Core
                 _fileStream.Seek(-SizeConstants.SegmentState, SeekOrigin.Current);
                 Segment.WriteState(_fileStream, segmentIterator.Current.State);
             }
+        }
+
+        public List<string> GetAllRecordNames()
+        {
+            var result = new List<string>();
+            _fileStream.Seek(0, SeekOrigin.Begin);
+            for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
+            {
+                byte recordState = RecordDescription.ReadState(_fileStream);
+                if (!RecordState.IsFree(recordState))
+                {
+                    var nameBytes = new byte[SizeConstants.RecordName];
+                    _fileStream.ReadByteArray(nameBytes, 0, SizeConstants.RecordName);
+                    var name = Encoding.UTF8.GetString(nameBytes, 0, Array.IndexOf<byte>(nameBytes, 0));
+                    result.Add(name);
+                    _fileStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
+                }
+                else
+                {
+                    _fileStream.Seek(SizeConstants.RecordDescription - SizeConstants.RecordState, SeekOrigin.Current);
+                }
+            }
+
+            return result;
         }
     }
 }
