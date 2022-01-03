@@ -20,8 +20,8 @@ namespace StarterApp
             var image1FileContent = File.ReadAllBytes(@"D:\Projects\SingleFileStorage\StarterApp\Sample\image1.jpg");
             var image2FileContent = File.ReadAllBytes(@"D:\Projects\SingleFileStorage\StarterApp\Sample\image2.jpg");
             File.Delete("image12.storage");
-            StorageBuilder.Create("image12.storage");
-            using (var storage = StorageBuilder.Open("image12.storage", Access.Modify))
+            StorageFile.Create("image12.storage");
+            using (var storage = StorageFile.Open("image12.storage", Access.Modify))
             {
                 // image1.jpg write
                 storage.CreateRecord("image1.jpg");

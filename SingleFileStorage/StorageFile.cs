@@ -7,7 +7,7 @@ using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage
 {
-    public class StorageBuilder
+    public class StorageFile
     {
         public static void Create(string fullPath)
         {
