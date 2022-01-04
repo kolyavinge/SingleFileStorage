@@ -10,8 +10,9 @@ namespace StarterApp
         static void Main(string[] args)
         {
             var sequence = 0;
-            var hugeWrite = 1;
+            var hugeWrite = 0;
             var hugeRead = 0;
+            var seek = 1;
 
             var sw = Stopwatch.StartNew();
 
@@ -26,6 +27,10 @@ namespace StarterApp
             if (hugeRead == 1)
             {
                 HugeRead();
+            }
+            if (seek == 1)
+            {
+                Seek();
             }
 
             sw.Stop();
@@ -107,6 +112,28 @@ namespace StarterApp
                     for (int i = 0; i < buffer.Length; i++)
                     {
                         record.ReadByte();
+                    }
+                }
+            }
+        }
+
+        private static void Seek()
+        {
+            File.Delete("seek.storage");
+            StorageFile.Create("seek.storage");
+            using (var storage = StorageFile.Open("seek.storage", Access.Modify))
+            {
+                storage.CreateRecord("record");
+                var buffer = new byte[5 * 100000];
+                using (var record = storage.OpenRecord("record"))
+                {
+                    record.Write(buffer, 0, buffer.Length);
+                }
+                using (var record = storage.OpenRecord("record"))
+                {
+                    for (int i = 0; i < buffer.Length; i++)
+                    {
+                        record.Seek(i, SeekOrigin.Begin);
                     }
                 }
             }

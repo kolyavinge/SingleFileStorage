@@ -8,8 +8,8 @@ namespace SingleFileStorage.Core
     internal class RecordStream : Stream
     {
         private readonly StorageFileStream _storageFileStream;
-        private readonly bool _canModify;
         private readonly RecordDescription _recordDescription;
+        private readonly bool _canModify;
         private readonly SegmentBuffer _segmentBuffer;
         private readonly Segment _firstSegment;
         private Segment _currentSegment;
@@ -30,13 +30,14 @@ namespace SingleFileStorage.Core
         public RecordStream(StorageFileStream storageFileStream, RecordDescription recordDescription)
         {
             _storageFileStream = storageFileStream;
+            _recordDescription = recordDescription;
             _canModify = storageFileStream.AccessMode == Access.Modify; // для оптимизации ThrowErrorIfNotModified()
             CanWrite = _canModify;
-            _recordDescription = recordDescription;
-            _segmentBuffer = new SegmentBuffer();
-            _firstSegment = _segmentBuffer.GetByIndex(_storageFileStream, _recordDescription.FirstSegmentIndex);
+            _firstSegment = Segment.GotoSegmentStartPositionAndCreate(_storageFileStream, _recordDescription.FirstSegmentIndex);
             _lastStorageFileStreamPosition = _firstSegment.DataStartPosition;
             _currentSegment = _firstSegment;
+            _segmentBuffer = new SegmentBuffer();
+            _segmentBuffer.Add(_firstSegment);
         }
 
         public override int ReadByte()
@@ -235,8 +236,7 @@ namespace SingleFileStorage.Core
             {
                 _lastStorageFileStreamPosition = _storageFileStream.Seek(_firstSegment.DataStartPosition, SeekOrigin.Begin);
                 _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _firstSegment, value);
-                var segmentIterator = new SegmentIterator(_storageFileStream, _segmentBuffer, _currentSegment);
-                segmentIterator.ForEachExceptFirst(s => Segment.WriteState(_storageFileStream, SegmentState.Free));
+                SegmentIterator.ForEachExceptFirst(_storageFileStream, _segmentBuffer, _currentSegment, s => Segment.WriteState(_storageFileStream, SegmentState.Free));
                 SegmentState.SetLast(ref _currentSegment.State);
                 _currentSegment.DataLength = (uint)(_storageFileStream.Position - _currentSegment.DataStartPosition);
                 _currentSegment.NextSegmentIndex = Segment.NullValue;

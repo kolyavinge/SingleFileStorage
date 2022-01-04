@@ -100,8 +100,7 @@ namespace SingleFileStorage.Core
             _fileStream.Seek(recordDescription.StartPosition, SeekOrigin.Begin);
             RecordDescription.WriteState(_fileStream, RecordState.Free);
             var firstSegment = Segment.GotoSegmentStartPositionAndCreate(_fileStream, recordDescription.FirstSegmentIndex);
-            var segmentIterator = new SegmentIterator(_fileStream, new SegmentBuffer(), firstSegment);
-            segmentIterator.ForEach(s => Segment.WriteState(_fileStream, SegmentState.Free));
+            SegmentIterator.ForEach(_fileStream, new SegmentBuffer(), firstSegment, s => Segment.WriteState(_fileStream, SegmentState.Free));
         }
 
         public List<string> GetAllRecordNames()

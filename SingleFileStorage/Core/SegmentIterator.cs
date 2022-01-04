@@ -4,45 +4,43 @@ using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
-    internal class SegmentIterator
+    static class SegmentIterator
     {
-        private readonly StorageFileStream _storageFileStream;
-        private readonly SegmentBuffer _segmentBuffer;
-
-        public Segment Current;
-
-        public SegmentIterator(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment startSegment)
+        public static Segment GetNextSegment(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment)
         {
-            _storageFileStream = storageFileStream;
-            _segmentBuffer = segmentBuffer;
-            Current = startSegment;
-        }
-
-        public bool MoveNext()
-        {
-            if (!SegmentState.IsLast(Current.State))
+            if (!SegmentState.IsLast(segment.State))
             {
-                var nextSegment = _segmentBuffer.GetByIndex(_storageFileStream, Current.NextSegmentIndex);
-                _storageFileStream.Seek(nextSegment.DataStartPosition, SeekOrigin.Begin);
-                Current = nextSegment;
-
-                return true;
+                return segmentBuffer.GetByIndex(storageFileStream, segment.NextSegmentIndex);
             }
             else
             {
-                return false;
+                return null;
             }
         }
 
-        public void ForEach(Action<Segment> action)
+        public static void ForEach(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment, Action<Segment> action)
         {
-            action(Current);
-            while (MoveNext()) action(Current);
+            var current = segment;
+            while (true)
+            {
+                action(current);
+                current = GetNextSegment(storageFileStream, segmentBuffer, current);
+                if (current == null) return;
+                storageFileStream.Seek(current.DataStartPosition, SeekOrigin.Begin);
+            }
         }
 
-        public void ForEachExceptFirst(Action<Segment> action)
+        public static void ForEachExceptFirst(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment, Action<Segment> action)
         {
-            while (MoveNext()) action(Current);
+            var current = GetNextSegment(storageFileStream, segmentBuffer, segment);
+            if (current == null) return;
+            while (true)
+            {
+                action(current);
+                current = GetNextSegment(storageFileStream, segmentBuffer, current);
+                if (current == null) return;
+                storageFileStream.Seek(current.DataStartPosition, SeekOrigin.Begin);
+            }
         }
     }
 }

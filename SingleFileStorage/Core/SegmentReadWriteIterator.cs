@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
@@ -26,29 +27,32 @@ namespace SingleFileStorage.Core
 
         public void Iterate(IterationDelegate iterationFunc)
         {
-            var iterator = new SegmentIterator(_storageFileStream, _segmentBuffer, _startSegment);
             TotalIteratedBytes = 0;
             RemainingBytes = _bytesCount;
+            var segment = _startSegment;
             while (RemainingBytes > 0)
             {
                 int segmentAvailableBytes;
-                if (RemainingBytes <= iterator.Current.DataEndPosition - _storageFileStream.Position)
+                if (RemainingBytes <= segment.DataEndPosition - _storageFileStream.Position)
                 {
                     segmentAvailableBytes = (int)RemainingBytes;
                     RemainingBytes -= segmentAvailableBytes;
-                    iterationFunc(iterator.Current, segmentAvailableBytes, TotalIteratedBytes);
+                    iterationFunc(segment, segmentAvailableBytes, TotalIteratedBytes);
                     TotalIteratedBytes += segmentAvailableBytes;
                 }
                 else
                 {
-                    segmentAvailableBytes = (int)(iterator.Current.DataEndPosition - _storageFileStream.Position);
+                    segmentAvailableBytes = (int)(segment.DataEndPosition - _storageFileStream.Position);
                     RemainingBytes -= segmentAvailableBytes;
-                    iterationFunc(iterator.Current, segmentAvailableBytes, TotalIteratedBytes);
+                    iterationFunc(segment, segmentAvailableBytes, TotalIteratedBytes);
                     TotalIteratedBytes += segmentAvailableBytes;
-                    if (!iterator.MoveNext()) break;
+                    var nextSegment = SegmentIterator.GetNextSegment(_storageFileStream, _segmentBuffer, segment);
+                    if (nextSegment == null) break;
+                    segment = nextSegment;
+                    _storageFileStream.Seek(segment.DataStartPosition, SeekOrigin.Begin);
                 }
             }
-            LastIteratedSegment = iterator.Current;
+            LastIteratedSegment = segment;
         }
     }
 }
