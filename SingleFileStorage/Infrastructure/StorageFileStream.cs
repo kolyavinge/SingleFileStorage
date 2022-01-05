@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
 
-namespace SingleFileStorage.Core
+namespace SingleFileStorage.Infrastructure
 {
-    internal abstract class StorageFileStream : IDisposable
+    internal abstract class StorageFileStream : IReadableStream, IWriteableStream, IDisposable
     {
         private Stream _stream;
         private BinaryReader _reader;

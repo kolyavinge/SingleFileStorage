@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {

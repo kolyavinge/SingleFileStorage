@@ -9,13 +9,44 @@ namespace StarterApp
     {
         static void Main(string[] args)
         {
+            var createRecord = 0;
+            var openRecord = 1;
+            var deleteRecord = 0;
+            var renameRecord = 0;
+            var recordExist = 0;
+            var allRecordNames = 0;
             var sequence = 0;
-            var hugeWrite = 1;
+            var hugeWrite = 0;
             var hugeRead = 0;
             var seek = 0;
+            var setLength = 0;
 
             var sw = Stopwatch.StartNew();
 
+            if (createRecord == 1)
+            {
+                CreateRecord();
+            }
+            if (openRecord == 1)
+            {
+                OpenRecord();
+            }
+            if (deleteRecord == 1)
+            {
+                DeleteRecord();
+            }
+            if (renameRecord == 1)
+            {
+                RenameRecord();
+            }
+            if (recordExist == 1)
+            {
+                IsRecordExist();
+            }
+            if (allRecordNames == 1)
+            {
+                GetAllRecordNames();
+            }
             if (sequence == 1)
             {
                 Sequence();
@@ -32,11 +63,125 @@ namespace StarterApp
             {
                 Seek();
             }
+            if (setLength == 1)
+            {
+                SetLength();
+            }
 
             sw.Stop();
             Console.WriteLine($"Total: {sw.Elapsed}");
             Console.WriteLine("done");
             Console.ReadKey();
+        }
+
+        private static void CreateRecord()
+        {
+            File.Delete("create.storage");
+            StorageFile.Create("create.storage");
+            using (var storage = StorageFile.Open("create.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.CreateRecord(i.ToString());
+                }
+            }
+        }
+
+        private static void OpenRecord()
+        {
+            File.Delete("open.storage");
+            StorageFile.Create("open.storage");
+            using (var storage = StorageFile.Open("open.storage", Access.Modify))
+            {
+                storage.CreateRecord("record");
+            }
+            using (var storage = StorageFile.Open("open.storage", Access.Modify))
+            {
+                for (int i = 0; i < 10000; i++)
+                {
+                    storage.OpenRecord("record");
+                }
+            }
+        }
+
+        private static void DeleteRecord()
+        {
+            File.Delete("delete.storage");
+            StorageFile.Create("delete.storage");
+            using (var storage = StorageFile.Open("delete.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.CreateRecord(i.ToString());
+                }
+            }
+            using (var storage = StorageFile.Open("delete.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.DeleteRecord(i.ToString());
+                }
+            }
+        }
+
+        private static void RenameRecord()
+        {
+            File.Delete("rename.storage");
+            StorageFile.Create("rename.storage");
+            using (var storage = StorageFile.Open("rename.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.CreateRecord(i.ToString());
+                }
+            }
+            using (var storage = StorageFile.Open("rename.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.RenameRecord(i.ToString(), (i + 10000).ToString());
+                }
+            }
+        }
+
+        private static void IsRecordExist()
+        {
+            File.Delete("exist.storage");
+            StorageFile.Create("exist.storage");
+            using (var storage = StorageFile.Open("exist.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.CreateRecord(i.ToString());
+                }
+            }
+            using (var storage = StorageFile.Open("exist.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.IsRecordExist(i.ToString());
+                }
+            }
+        }
+
+        private static void GetAllRecordNames()
+        {
+            File.Delete("allRecordNames.storage");
+            StorageFile.Create("allRecordNames.storage");
+            using (var storage = StorageFile.Open("allRecordNames.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.CreateRecord(i.ToString());
+                }
+            }
+            using (var storage = StorageFile.Open("allRecordNames.storage", Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.GetAllRecordNames();
+                }
+            }
         }
 
         private static void Sequence()
@@ -134,6 +279,28 @@ namespace StarterApp
                     for (int i = 0; i < buffer.Length; i++)
                     {
                         record.Seek(i, SeekOrigin.Begin);
+                    }
+                }
+            }
+        }
+
+        private static void SetLength()
+        {
+            File.Delete("setLength.storage");
+            StorageFile.Create("setLength.storage");
+            using (var storage = StorageFile.Open("setLength.storage", Access.Modify))
+            {
+                storage.CreateRecord("record");
+                var buffer = new byte[100000000];
+                using (var record = storage.OpenRecord("record"))
+                {
+                    record.Write(buffer, 0, buffer.Length);
+                }
+                using (var record = storage.OpenRecord("record"))
+                {
+                    for (int i = 0; i < 100000000; i++)
+                    {
+                        record.SetLength(buffer.Length - 0);
                     }
                 }
             }

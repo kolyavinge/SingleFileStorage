@@ -5,91 +5,91 @@ namespace SingleFileStorage.Core
 {
     internal class RecordDescription
     {
-        public static byte ReadState(StorageFileStream storageFileStream)
+        public static byte ReadState(IReadableStream stream)
         {
-            return storageFileStream.ReadByte();
+            return stream.ReadByte();
         }
 
-        public static uint ReadFirstSegmentIndex(StorageFileStream storageFileStream)
+        public static uint ReadFirstSegmentIndex(IReadableStream stream)
         {
-            return storageFileStream.ReadUInt32();
+            return stream.ReadUInt32();
         }
 
-        public static uint ReadLastSegmentIndex(StorageFileStream storageFileStream)
+        public static uint ReadLastSegmentIndex(IReadableStream stream)
         {
-            return storageFileStream.ReadUInt32();
+            return stream.ReadUInt32();
         }
 
-        public static uint ReadLength(StorageFileStream storageFileStream)
+        public static uint ReadLength(IReadableStream stream)
         {
-            return storageFileStream.ReadUInt32();
+            return stream.ReadUInt32();
         }
 
-        public static void WriteState(StorageFileStream storageFileStream, byte state)
+        public static void WriteState(IWriteableStream stream, byte state)
         {
-            storageFileStream.WriteByte(state);
+            stream.WriteByte(state);
         }
 
-        public static void WriteFirstSegmentIndex(StorageFileStream storageFileStream, uint firstSegmentIndex)
+        public static void WriteFirstSegmentIndex(IWriteableStream stream, uint firstSegmentIndex)
         {
-            storageFileStream.WriteUInt32(firstSegmentIndex);
+            stream.WriteUInt32(firstSegmentIndex);
         }
 
-        public static void WriteLastSegmentIndex(StorageFileStream storageFileStream, uint lastSegmentIndex)
+        public static void WriteLastSegmentIndex(IWriteableStream stream, uint lastSegmentIndex)
         {
-            storageFileStream.WriteUInt32(lastSegmentIndex);
+            stream.WriteUInt32(lastSegmentIndex);
         }
 
-        public static void WriteLength(StorageFileStream storageFileStream, uint length)
+        public static void WriteLength(IWriteableStream stream, uint length)
         {
-            storageFileStream.WriteUInt32(length);
+            stream.WriteUInt32(length);
         }
 
-        public static void WriteName(StorageFileStream storageFileStream, string recordName)
+        public static void WriteName(IWriteableStream stream, string recordName)
         {
             var nameBytes = RecordName.GetBytes(recordName);
-            storageFileStream.WriteByteArray(nameBytes, 0, nameBytes.Length);
+            stream.WriteByteArray(nameBytes, 0, nameBytes.Length);
         }
 
-        public static void FindFree(StorageFileStream storageFileStream)
+        public static long GetFreeStartPosition(IReadableStream storageDescriptionStream)
         {
+            storageDescriptionStream.Seek(0, SeekOrigin.Begin);
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
-                byte recordState = ReadState(storageFileStream);
+                byte recordState = ReadState(storageDescriptionStream);
                 if (recordState == RecordState.Free)
                 {
-                    storageFileStream.Seek(-SizeConstants.RecordState, SeekOrigin.Current);
-                    WriteState(storageFileStream, RecordState.Used);
-                    return;
+                    return storageDescriptionStream.Seek(-SizeConstants.RecordState, SeekOrigin.Current);
                 }
                 else
                 {
-                    storageFileStream.Seek(SizeConstants.RecordDescription - SizeConstants.RecordState, SeekOrigin.Current);
+                    storageDescriptionStream.Seek(SizeConstants.RecordDescription - SizeConstants.RecordState, SeekOrigin.Current);
                 }
             }
 
             throw new IOException("Cannot find any free record description.");
         }
 
-        public static RecordDescription FindByName(StorageFileStream storageFileStream, string recordName)
+        public static RecordDescription FindByName(IReadableStream storageDescriptionStream, string recordName)
         {
+            storageDescriptionStream.Seek(0, SeekOrigin.Begin);
             var recordNameBytes = RecordName.GetBytes(recordName);
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
-                byte recordState = ReadState(storageFileStream);
+                byte recordState = ReadState(storageDescriptionStream);
                 if (recordState == RecordState.Used)
                 {
                     var currentRecordNameBytes = new byte[SizeConstants.RecordName];
-                    storageFileStream.ReadByteArray(currentRecordNameBytes, 0, SizeConstants.RecordName);
+                    storageDescriptionStream.ReadByteArray(currentRecordNameBytes, 0, SizeConstants.RecordName);
                     if (RecordName.IsEqual(recordNameBytes, currentRecordNameBytes))
                     {
-                        return new RecordDescription(storageFileStream, recordState);
+                        return new RecordDescription(storageDescriptionStream, recordState);
                     }
-                    storageFileStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
+                    storageDescriptionStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
                 }
                 else
                 {
-                    storageFileStream.Seek(SizeConstants.RecordDescription - SizeConstants.RecordState, SeekOrigin.Current);
+                    storageDescriptionStream.Seek(SizeConstants.RecordDescription - SizeConstants.RecordState, SeekOrigin.Current);
                 }
             }
 
@@ -105,13 +105,14 @@ namespace SingleFileStorage.Core
         public readonly long RecordLengthStartPosition;
         public bool IsModified;
 
-        private RecordDescription(StorageFileStream storageFileStream, byte state)
+        private RecordDescription(IReadableStream stream, byte state)
         {
-            StartPosition = storageFileStream.Position - (SizeConstants.RecordState + SizeConstants.RecordName);
+            long position = stream.Seek(0, SeekOrigin.Current);
+            StartPosition = position - (SizeConstants.RecordState + SizeConstants.RecordName);
             State = state;
-            FirstSegmentIndex = ReadFirstSegmentIndex(storageFileStream);
-            LastSegmentIndex = ReadLastSegmentIndex(storageFileStream);
-            RecordLength = ReadLength(storageFileStream);
+            FirstSegmentIndex = ReadFirstSegmentIndex(stream);
+            LastSegmentIndex = ReadLastSegmentIndex(stream);
+            RecordLength = ReadLength(stream);
             LastSegmentIndexPosition = StartPosition + SizeConstants.RecordState + SizeConstants.RecordName + SizeConstants.RecordFirstSegmentIndex;
             RecordLengthStartPosition = StartPosition + SizeConstants.RecordState + SizeConstants.RecordName + SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex;
         }

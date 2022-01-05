@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
@@ -30,11 +31,12 @@ namespace SingleFileStorage.Core
         {
             ThrowErrorIfNotModified();
             RecordName.ThrowErrorIfInvalid(recordName);
-            _fileStream.Seek(0, SeekOrigin.Begin);
-            var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
+            var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
+            var recordDescription = RecordDescription.FindByName(storageDescriptionStream, recordName);
             if (recordDescription != null) throw new IOException($"Record '{recordName}' already exists.");
-            _fileStream.Seek(0, SeekOrigin.Begin);
-            RecordDescription.FindFree(_fileStream);
+            long freeRecordDescriptionStartPosition = RecordDescription.GetFreeStartPosition(storageDescriptionStream);
+            _fileStream.Seek(freeRecordDescriptionStartPosition, SeekOrigin.Begin);
+            RecordDescription.WriteState(_fileStream, RecordState.Used);
             RecordDescription.WriteName(_fileStream, recordName);
             long recordDescriptionFirstSegmentIndexPosition = _fileStream.Position;
             _fileStream.Seek(SizeConstants.StorageDescription, SeekOrigin.Begin);
@@ -57,8 +59,8 @@ namespace SingleFileStorage.Core
         public Stream OpenRecord(string recordName)
         {
             RecordName.ThrowErrorIfInvalid(recordName);
-            _fileStream.Seek(0, SeekOrigin.Begin);
-            var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
+            var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
+            var recordDescription = RecordDescription.FindByName(storageDescriptionStream, recordName);
             if (recordDescription == null) throw new IOException($"Record '{recordName}' does not exist.");
 
             return new RecordStream(_fileStream, recordDescription);
@@ -67,8 +69,8 @@ namespace SingleFileStorage.Core
         public bool IsRecordExist(string recordName)
         {
             RecordName.ThrowErrorIfInvalid(recordName);
-            _fileStream.Seek(0, SeekOrigin.Begin);
-            var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
+            var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
+            var recordDescription = RecordDescription.FindByName(storageDescriptionStream, recordName);
 
             return recordDescription != null;
         }
@@ -78,11 +80,10 @@ namespace SingleFileStorage.Core
             ThrowErrorIfNotModified();
             RecordName.ThrowErrorIfInvalid(oldRecordName);
             RecordName.ThrowErrorIfInvalid(newRecordName);
-            _fileStream.Seek(0, SeekOrigin.Begin);
-            var oldRecordDescription = RecordDescription.FindByName(_fileStream, oldRecordName);
+            var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
+            var oldRecordDescription = RecordDescription.FindByName(storageDescriptionStream, oldRecordName);
             if (oldRecordDescription == null) throw new IOException($"Record '{oldRecordName}' does not exist.");
-            _fileStream.Seek(0, SeekOrigin.Begin);
-            var newRecordDescription = RecordDescription.FindByName(_fileStream, newRecordName);
+            var newRecordDescription = RecordDescription.FindByName(storageDescriptionStream, newRecordName);
             if (newRecordDescription != null) throw new IOException($"Record '{newRecordName}' already exists.");
             _fileStream.Seek(oldRecordDescription.StartPosition + SizeConstants.RecordState, SeekOrigin.Begin);
             RecordDescription.WriteName(_fileStream, newRecordName);
@@ -92,8 +93,8 @@ namespace SingleFileStorage.Core
         {
             ThrowErrorIfNotModified();
             RecordName.ThrowErrorIfInvalid(recordName);
-            _fileStream.Seek(0, SeekOrigin.Begin);
-            var recordDescription = RecordDescription.FindByName(_fileStream, recordName);
+            var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
+            var recordDescription = RecordDescription.FindByName(storageDescriptionStream, recordName);
             if (recordDescription == null) throw new IOException($"Record '{recordName}' does not exist.");
             _fileStream.Seek(recordDescription.StartPosition, SeekOrigin.Begin);
             RecordDescription.WriteState(_fileStream, RecordState.Free);
@@ -104,20 +105,20 @@ namespace SingleFileStorage.Core
         public List<string> GetAllRecordNames()
         {
             var result = new List<string>();
-            _fileStream.Seek(0, SeekOrigin.Begin);
+            var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
-                byte recordState = RecordDescription.ReadState(_fileStream);
+                byte recordState = RecordDescription.ReadState(storageDescriptionStream);
                 if (recordState == RecordState.Used)
                 {
                     var nameBytes = new byte[SizeConstants.RecordName];
-                    _fileStream.ReadByteArray(nameBytes, 0, SizeConstants.RecordName);
+                    storageDescriptionStream.ReadByteArray(nameBytes, 0, SizeConstants.RecordName);
                     result.Add(RecordName.GetString(nameBytes));
-                    _fileStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
+                    storageDescriptionStream.Seek(SizeConstants.RecordFirstSegmentIndex + SizeConstants.RecordLastSegmentIndex + SizeConstants.RecordLength, SeekOrigin.Current);
                 }
                 else
                 {
-                    _fileStream.Seek(SizeConstants.RecordDescription - SizeConstants.RecordState, SeekOrigin.Current);
+                    storageDescriptionStream.Seek(SizeConstants.RecordDescription - SizeConstants.RecordState, SeekOrigin.Current);
                 }
             }
 

@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using SingleFileStorage.Core;
+using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Test.Tools
 {
