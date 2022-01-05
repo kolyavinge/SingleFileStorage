@@ -317,7 +317,7 @@ namespace SingleFileStorage.Test.Core
             record.Dispose();
             var segments = GetAllRecordSegments("record");
             Assert.AreEqual(1, segments.Count);
-            Assert.AreEqual(SegmentState.UsedAndLast, segments[0].State);
+            Assert.AreEqual(SegmentState.Last, segments[0].State);
             Assert.AreEqual(100, segments[0].DataLength);
         }
 
@@ -329,10 +329,10 @@ namespace SingleFileStorage.Test.Core
             record.Dispose();
             var segments = GetAllRecordSegments("record");
             Assert.AreEqual(2, segments.Count);
-            Assert.AreEqual(SegmentState.UsedAndChained, segments[0].State);
+            Assert.AreEqual(SegmentState.Chained, segments[0].State);
             Assert.AreEqual(SizeConstants.SegmentData, segments[0].DataLength);
             Assert.AreEqual(1, segments[0].NextSegmentIndex);
-            Assert.AreEqual(SegmentState.UsedAndLast, segments[1].State);
+            Assert.AreEqual(SegmentState.Last, segments[1].State);
             Assert.AreEqual(SizeConstants.SegmentData / 2, segments[1].DataLength);
             Assert.AreEqual(Segment.NullValue, segments[1].NextSegmentIndex);
         }
@@ -523,10 +523,10 @@ namespace SingleFileStorage.Test.Core
             record.Dispose();
             var segments = GetAllRecordSegments("record");
             Assert.AreEqual(2, segments.Count);
-            Assert.AreEqual(SegmentState.UsedAndChained, segments[0].State);
+            Assert.AreEqual(SegmentState.Chained, segments[0].State);
             Assert.AreEqual(SizeConstants.SegmentData, segments[0].DataLength);
             Assert.AreEqual(1, segments[0].NextSegmentIndex);
-            Assert.AreEqual(SegmentState.UsedAndLast, segments[1].State);
+            Assert.AreEqual(SegmentState.Last, segments[1].State);
             Assert.AreEqual(SizeConstants.SegmentData / 2 - 100, segments[1].DataLength);
             Assert.AreEqual(Segment.NullValue, segments[1].NextSegmentIndex);
         }

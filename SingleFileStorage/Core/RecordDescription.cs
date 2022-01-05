@@ -56,11 +56,10 @@ namespace SingleFileStorage.Core
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
                 byte recordState = ReadState(storageFileStream);
-                if (RecordState.IsFree(recordState))
+                if (recordState == RecordState.Free)
                 {
                     storageFileStream.Seek(-SizeConstants.RecordState, SeekOrigin.Current);
-                    RecordState.SetUsed(ref recordState);
-                    WriteState(storageFileStream, recordState);
+                    WriteState(storageFileStream, RecordState.Used);
                     return;
                 }
                 else
@@ -78,7 +77,7 @@ namespace SingleFileStorage.Core
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
                 byte recordState = ReadState(storageFileStream);
-                if (RecordState.IsUsed(recordState))
+                if (recordState == RecordState.Used)
                 {
                     var currentRecordNameBytes = new byte[SizeConstants.RecordName];
                     storageFileStream.ReadByteArray(currentRecordNameBytes, 0, SizeConstants.RecordName);

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
@@ -8,7 +7,7 @@ namespace SingleFileStorage.Core
     {
         public static Segment GetNextSegment(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment)
         {
-            if (!SegmentState.IsLast(segment.State))
+            if (segment.State != SegmentState.Last)
             {
                 return segmentBuffer.GetByIndex(storageFileStream, segment.NextSegmentIndex);
             }

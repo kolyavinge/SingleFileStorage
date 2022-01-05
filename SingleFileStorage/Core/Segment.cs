@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
@@ -68,7 +67,7 @@ namespace SingleFileStorage.Core
             while (segmentIndex < segmentsCount)
             {
                 byte segmentState = ReadState(storageFileStream);
-                if (SegmentState.IsFree(segmentState))
+                if (segmentState == SegmentState.Free)
                 {
                     storageFileStream.Seek(-SizeConstants.SegmentState, SeekOrigin.Current);
                     return segmentIndex;
@@ -134,7 +133,7 @@ namespace SingleFileStorage.Core
         {
             Index = index;
             State = state;
-            if (SegmentState.IsLast(State))
+            if (State == SegmentState.Last)
             {
                 NextSegmentIndex = NullValue;
                 DataLength = nextSegmentIndexOrDataLength;

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
@@ -87,7 +86,7 @@ namespace SingleFileStorage.Core
             if (iterator.RemainingBytes == 0)
             {
                 _lastStorageFileStreamPosition = _storageFileStream.Position;
-                if (SegmentState.IsLast(_currentSegment.State))
+                if (_currentSegment.State == SegmentState.Last)
                 {
                     var newDataLength = (uint)(_storageFileStream.Position - _currentSegment.DataStartPosition);
                     if (newDataLength > _currentSegment.DataLength)
@@ -105,7 +104,7 @@ namespace SingleFileStorage.Core
             else
             {
                 uint lastSegmentIndex = Segment.GetSegmentsCount(_storageFileStream.Length) - 1;
-                SegmentState.SetChained(ref _currentSegment.State);
+                _currentSegment.State = SegmentState.Chained;
                 _currentSegment.DataLength = SizeConstants.SegmentData;
                 _currentSegment.NextSegmentIndex = lastSegmentIndex + 1;
                 _currentSegment.IsModified = true;
@@ -115,12 +114,12 @@ namespace SingleFileStorage.Core
                 while (remainingBytes > SizeConstants.SegmentData)
                 {
                     lastSegmentIndex++;
-                    Segment.AppendSegment(_storageFileStream, SegmentState.UsedAndChained, lastSegmentIndex + 1, buffer, currentOffset, SizeConstants.SegmentData);
+                    Segment.AppendSegment(_storageFileStream, SegmentState.Chained, lastSegmentIndex + 1, buffer, currentOffset, SizeConstants.SegmentData);
                     currentOffset += SizeConstants.SegmentData;
                     remainingBytes -= SizeConstants.SegmentData;
                 }
                 lastSegmentIndex++;
-                Segment.AppendSegment(_storageFileStream, SegmentState.UsedAndLast, (uint)remainingBytes, buffer, currentOffset, (int)remainingBytes, out _currentSegment);
+                Segment.AppendSegment(_storageFileStream, SegmentState.Last, (uint)remainingBytes, buffer, currentOffset, (int)remainingBytes, out _currentSegment);
                 _currentSegment.IsModified = true;
                 _lastStorageFileStreamPosition = _currentSegment.DataStartPosition + (int)remainingBytes;
                 _recordDescription.LastSegmentIndex = _currentSegment.Index;
@@ -175,7 +174,7 @@ namespace SingleFileStorage.Core
             }
             else if (origin == SeekOrigin.End)
             {
-                if (!SegmentState.IsLast(_currentSegment.State))
+                if (_currentSegment.State != SegmentState.Last)
                 {
                     _currentSegment = _segmentBuffer.GetByIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
                 }
@@ -237,7 +236,7 @@ namespace SingleFileStorage.Core
                 _lastStorageFileStreamPosition = _storageFileStream.Seek(_firstSegment.DataStartPosition, SeekOrigin.Begin);
                 _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _firstSegment, value);
                 SegmentIterator.ForEachExceptFirst(_storageFileStream, _segmentBuffer, _currentSegment, s => Segment.WriteState(_storageFileStream, SegmentState.Free));
-                SegmentState.SetLast(ref _currentSegment.State);
+                _currentSegment.State = SegmentState.Last;
                 _currentSegment.DataLength = (uint)(_storageFileStream.Position - _currentSegment.DataStartPosition);
                 _currentSegment.NextSegmentIndex = Segment.NullValue;
                 _storageFileStream.Seek(_currentSegment.StartPosition, SeekOrigin.Begin);
@@ -271,7 +270,7 @@ namespace SingleFileStorage.Core
             {
                 _storageFileStream.Seek(segment.StartPosition, SeekOrigin.Begin);
                 Segment.WriteState(_storageFileStream, segment.State);
-                if (SegmentState.IsLast(segment.State))
+                if (segment.State == SegmentState.Last)
                 {
                     Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, segment.DataLength);
                 }

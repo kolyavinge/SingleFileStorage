@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
@@ -43,11 +41,11 @@ namespace SingleFileStorage.Core
             uint firstSegmentIndex = Segment.FindNextFreeSegmentIndex(_fileStream);
             if (firstSegmentIndex != Segment.NullValue)
             {
-                Segment.WriteState(_fileStream, SegmentState.UsedAndLast);
+                Segment.WriteState(_fileStream, SegmentState.Last);
             }
             else
             {
-                Segment.AppendEmptySegment(_fileStream, SegmentState.UsedAndLast);
+                Segment.AppendEmptySegment(_fileStream, SegmentState.Last);
                 firstSegmentIndex = Segment.GetSegmentsCount(_fileStream.Length) - 1;
             }
             _fileStream.Seek(recordDescriptionFirstSegmentIndexPosition, SeekOrigin.Begin);
@@ -110,7 +108,7 @@ namespace SingleFileStorage.Core
             for (int recordNumber = 0; recordNumber < SizeConstants.MaxRecordsCount; recordNumber++)
             {
                 byte recordState = RecordDescription.ReadState(_fileStream);
-                if (RecordState.IsUsed(recordState))
+                if (recordState == RecordState.Used)
                 {
                     var nameBytes = new byte[SizeConstants.RecordName];
                     _fileStream.ReadByteArray(nameBytes, 0, SizeConstants.RecordName);
