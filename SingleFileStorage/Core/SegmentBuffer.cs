@@ -13,13 +13,14 @@ namespace SingleFileStorage.Core
 
         public Segment GetByIndex(StorageFileStream storageFileStream, uint segmentIndex)
         {
-            if (_segments.ContainsKey(segmentIndex))
+            Segment segment;
+            if (_segments.TryGetValue(segmentIndex, out segment))
             {
-                return _segments[segmentIndex];
+                return segment;
             }
             else
             {
-                var segment = Segment.GotoSegmentStartPositionAndCreate(storageFileStream, segmentIndex);
+                segment = Segment.GotoSegmentStartPositionAndCreate(storageFileStream, segmentIndex);
                 _segments.Add(segmentIndex, segment);
 
                 return segment;

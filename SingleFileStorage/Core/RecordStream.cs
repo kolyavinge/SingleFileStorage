@@ -14,6 +14,8 @@ namespace SingleFileStorage.Core
         private Segment _currentSegment;
         private long _position;
         private long _lastStorageFileStreamPosition;
+        private readonly SegmentReadWriteIterator _readIterator;
+        private readonly SegmentReadWriteIterator _writeIterator;
 
         public override bool CanRead => true;
         public override bool CanWrite { get; }
@@ -37,6 +39,8 @@ namespace SingleFileStorage.Core
             _currentSegment = _firstSegment;
             _segmentBuffer = new SegmentBuffer();
             _segmentBuffer.Add(_firstSegment);
+            _readIterator = new SegmentReadWriteIterator(_storageFileStream, _segmentBuffer);
+            _writeIterator = new SegmentReadWriteIterator(_storageFileStream, _segmentBuffer);
         }
 
         public override int ReadByte()
@@ -51,13 +55,12 @@ namespace SingleFileStorage.Core
                 _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
             }
             int totalReaded = 0;
-            var iterator = new SegmentReadWriteIterator(_storageFileStream, _segmentBuffer, _currentSegment, count);
-            iterator.Iterate((currentSegment, segmentAvailableBytes, totalIteratedBytes) =>
+            _readIterator.Iterate(_currentSegment, count, (segment, segmentAvailableBytes, totalIteratedBytes) =>
             {
-                int maxBytesToRead = (int)Math.Min(currentSegment.DataLength, segmentAvailableBytes);
+                int maxBytesToRead = (int)Math.Min(segment.DataLength, segmentAvailableBytes);
                 totalReaded += _storageFileStream.ReadByteArray(buffer, offset + (int)totalIteratedBytes, maxBytesToRead);
             });
-            _currentSegment = iterator.LastIteratedSegment;
+            _currentSegment = _readIterator.LastIteratedSegment;
             _position += totalReaded;
             _lastStorageFileStreamPosition = _storageFileStream.Position;
 
@@ -76,14 +79,13 @@ namespace SingleFileStorage.Core
             {
                 _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
             }
-            var iterator = new SegmentReadWriteIterator(_storageFileStream, _segmentBuffer, _currentSegment, count);
-            iterator.Iterate((currentSegment, segmentAvailableBytes, totalIteratedBytes) =>
+            _writeIterator.Iterate(_currentSegment, count, (segment, segmentAvailableBytes, totalIteratedBytes) =>
             {
                 _storageFileStream.WriteByteArray(buffer, offset + (int)totalIteratedBytes, segmentAvailableBytes);
             });
-            _currentSegment = iterator.LastIteratedSegment;
-            _position += iterator.TotalIteratedBytes + iterator.RemainingBytes;
-            if (iterator.RemainingBytes == 0)
+            _currentSegment = _writeIterator.LastIteratedSegment;
+            _position += _writeIterator.TotalIteratedBytes + _writeIterator.RemainingBytes;
+            if (_writeIterator.RemainingBytes == 0)
             {
                 _lastStorageFileStreamPosition = _storageFileStream.Position;
                 if (_currentSegment.State == SegmentState.Last)
@@ -109,8 +111,8 @@ namespace SingleFileStorage.Core
                 _currentSegment.NextSegmentIndex = lastSegmentIndex + 1;
                 _currentSegment.IsModified = true;
                 _storageFileStream.Seek(0, SeekOrigin.End);
-                int currentOffset = offset + (int)iterator.TotalIteratedBytes;
-                long remainingBytes = iterator.RemainingBytes;
+                int currentOffset = offset + (int)_writeIterator.TotalIteratedBytes;
+                long remainingBytes = _writeIterator.RemainingBytes;
                 while (remainingBytes > SizeConstants.SegmentData)
                 {
                     lastSegmentIndex++;

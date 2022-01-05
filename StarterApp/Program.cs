@@ -10,9 +10,9 @@ namespace StarterApp
         static void Main(string[] args)
         {
             var sequence = 0;
-            var hugeWrite = 0;
+            var hugeWrite = 1;
             var hugeRead = 0;
-            var seek = 1;
+            var seek = 0;
 
             var sw = Stopwatch.StartNew();
 

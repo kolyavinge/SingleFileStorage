@@ -126,7 +126,6 @@ namespace SingleFileStorage.Core
         public readonly long StartPosition;
         public readonly long EndPosition;
         public readonly long DataStartPosition;
-        public readonly long DataEndPosition;
         public bool IsModified;
 
         private Segment(uint index, byte state, uint nextSegmentIndexOrDataLength)
@@ -146,7 +145,6 @@ namespace SingleFileStorage.Core
             StartPosition = SizeConstants.StorageDescription + SizeConstants.Segment * Index;
             EndPosition = StartPosition + SizeConstants.Segment;
             DataStartPosition = StartPosition + SizeConstants.SegmentState + SizeConstants.SegmentNextIndexOrDataLength;
-            DataEndPosition = DataStartPosition + SizeConstants.SegmentData;
         }
 
         public bool Contains(long position)
