@@ -7,19 +7,25 @@ namespace StarterApp
 {
     class Program
     {
+        const string _storageFileName = "storage";
+
         static void Main(string[] args)
         {
             var createRecord = 0;
-            var openRecord = 1;
+            var openRecord = 0;
             var deleteRecord = 0;
             var renameRecord = 0;
             var recordExist = 0;
             var allRecordNames = 0;
             var sequence = 0;
-            var hugeWrite = 0;
-            var hugeRead = 0;
+            var write = 0;
+            var bigWrite = 1;
+            var read = 0;
             var seek = 0;
             var setLength = 0;
+
+            File.Delete(_storageFileName);
+            StorageFile.Create(_storageFileName);
 
             var sw = Stopwatch.StartNew();
 
@@ -51,13 +57,17 @@ namespace StarterApp
             {
                 Sequence();
             }
-            if (hugeWrite == 1)
+            if (write == 1)
             {
-                HugeWrite();
+                Write();
             }
-            if (hugeRead == 1)
+            if (bigWrite == 1)
             {
-                HugeRead();
+                BigWrite();
+            }
+            if (read == 1)
+            {
+                Read();
             }
             if (seek == 1)
             {
@@ -69,6 +79,7 @@ namespace StarterApp
             }
 
             sw.Stop();
+            File.Delete(_storageFileName);
             Console.WriteLine($"Total: {sw.Elapsed}");
             Console.WriteLine("done");
             Console.ReadKey();
@@ -76,9 +87,7 @@ namespace StarterApp
 
         private static void CreateRecord()
         {
-            File.Delete("create.storage");
-            StorageFile.Create("create.storage");
-            using (var storage = StorageFile.Open("create.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -89,13 +98,11 @@ namespace StarterApp
 
         private static void OpenRecord()
         {
-            File.Delete("open.storage");
-            StorageFile.Create("open.storage");
-            using (var storage = StorageFile.Open("open.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 storage.CreateRecord("record");
             }
-            using (var storage = StorageFile.Open("open.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 10000; i++)
                 {
@@ -106,16 +113,14 @@ namespace StarterApp
 
         private static void DeleteRecord()
         {
-            File.Delete("delete.storage");
-            StorageFile.Create("delete.storage");
-            using (var storage = StorageFile.Open("delete.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
                     storage.CreateRecord(i.ToString());
                 }
             }
-            using (var storage = StorageFile.Open("delete.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -126,16 +131,14 @@ namespace StarterApp
 
         private static void RenameRecord()
         {
-            File.Delete("rename.storage");
-            StorageFile.Create("rename.storage");
-            using (var storage = StorageFile.Open("rename.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
                     storage.CreateRecord(i.ToString());
                 }
             }
-            using (var storage = StorageFile.Open("rename.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -146,16 +149,14 @@ namespace StarterApp
 
         private static void IsRecordExist()
         {
-            File.Delete("exist.storage");
-            StorageFile.Create("exist.storage");
-            using (var storage = StorageFile.Open("exist.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
                     storage.CreateRecord(i.ToString());
                 }
             }
-            using (var storage = StorageFile.Open("exist.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -166,16 +167,14 @@ namespace StarterApp
 
         private static void GetAllRecordNames()
         {
-            File.Delete("allRecordNames.storage");
-            StorageFile.Create("allRecordNames.storage");
-            using (var storage = StorageFile.Open("allRecordNames.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
                     storage.CreateRecord(i.ToString());
                 }
             }
-            using (var storage = StorageFile.Open("allRecordNames.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 for (int i = 0; i < 1000; i++)
                 {
@@ -188,9 +187,7 @@ namespace StarterApp
         {
             var image1FileContent = File.ReadAllBytes(@"D:\Projects\SingleFileStorage\StarterApp\Sample\image1.jpg");
             var image2FileContent = File.ReadAllBytes(@"D:\Projects\SingleFileStorage\StarterApp\Sample\image2.jpg");
-            File.Delete("image12.storage");
-            StorageFile.Create("image12.storage");
-            using (var storage = StorageFile.Open("image12.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 // image1.jpg write
                 storage.CreateRecord("image1.jpg");
@@ -223,11 +220,9 @@ namespace StarterApp
             }
         }
 
-        private static void HugeWrite()
+        private static void Write()
         {
-            File.Delete("hugeWrite.storage");
-            StorageFile.Create("hugeWrite.storage");
-            using (var storage = StorageFile.Open("hugeWrite.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 storage.CreateRecord("record");
                 using (var record = storage.OpenRecord("record"))
@@ -240,11 +235,25 @@ namespace StarterApp
             }
         }
 
-        private static void HugeRead()
+        private static void BigWrite()
         {
-            File.Delete("hugeRead.storage");
-            StorageFile.Create("hugeRead.storage");
-            using (var storage = StorageFile.Open("hugeRead.storage", Access.Modify))
+            var buff = new byte[1 * 1024 * 1024];
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
+            {
+                storage.CreateRecord("record");
+                using (var record = storage.OpenRecord("record"))
+                {
+                    for (int i = 0; i < 400; i++)
+                    {
+                        record.Write(buff, 0, buff.Length);
+                    }
+                }
+            }
+        }
+
+        private static void Read()
+        {
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 storage.CreateRecord("record");
                 var buffer = new byte[10000000];
@@ -264,9 +273,7 @@ namespace StarterApp
 
         private static void Seek()
         {
-            File.Delete("seek.storage");
-            StorageFile.Create("seek.storage");
-            using (var storage = StorageFile.Open("seek.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 storage.CreateRecord("record");
                 var buffer = new byte[5 * 100000];
@@ -286,9 +293,7 @@ namespace StarterApp
 
         private static void SetLength()
         {
-            File.Delete("setLength.storage");
-            StorageFile.Create("setLength.storage");
-            using (var storage = StorageFile.Open("setLength.storage", Access.Modify))
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
             {
                 storage.CreateRecord("record");
                 var buffer = new byte[100000000];

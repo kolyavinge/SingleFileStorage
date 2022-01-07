@@ -27,7 +27,9 @@ namespace SingleFileStorage.Infrastructure
 
         public virtual void Dispose()
         {
-            _stream.Close();
+            _stream.Dispose();
+            _reader.Dispose();
+            if (_writer != null) _writer.Dispose();
         }
 
         public byte ReadByte()
