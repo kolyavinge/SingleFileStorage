@@ -41,7 +41,8 @@ namespace SingleFileStorage.Core
                     RemainingBytes -= segmentAvailableBytes;
                     iterationFunc(segment, segmentAvailableBytes, TotalIteratedBytes);
                     TotalIteratedBytes += segmentAvailableBytes;
-                    var nextSegment = SegmentIterator.GetNextSegment(_storageFileStream, _segmentBuffer, segment);
+                    if (segment.State == SegmentState.Last) break;
+                    var nextSegment = segment.NextSegment ?? SegmentIterator.GetNextSegment(_storageFileStream, _segmentBuffer, segment);
                     if (nextSegment == null) break;
                     segment = nextSegment;
                     _storageFileStream.Seek(segment.DataStartPosition, SeekOrigin.Begin);

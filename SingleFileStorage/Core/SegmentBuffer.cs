@@ -5,7 +5,7 @@ namespace SingleFileStorage.Core
 {
     class SegmentBuffer
     {
-        private Dictionary<uint, Segment> _segments;
+        private readonly Dictionary<uint, Segment> _segments;
 
         public SegmentBuffer()
         {
@@ -14,8 +14,7 @@ namespace SingleFileStorage.Core
 
         public Segment GetByIndex(StorageFileStream storageFileStream, uint segmentIndex)
         {
-            Segment segment;
-            if (_segments.TryGetValue(segmentIndex, out segment))
+            if (_segments.TryGetValue(segmentIndex, out var segment))
             {
                 return segment;
             }

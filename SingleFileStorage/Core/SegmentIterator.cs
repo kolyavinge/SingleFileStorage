@@ -8,14 +8,19 @@ namespace SingleFileStorage.Core
     {
         public static Segment GetNextSegment(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment)
         {
+            if (segment.NextSegment != null)
+            {
+                return segment.NextSegment;
+            }
+
             if (segment.State != SegmentState.Last)
             {
-                return segmentBuffer.GetByIndex(storageFileStream, segment.NextSegmentIndex);
+                var nextSegment = segmentBuffer.GetByIndex(storageFileStream, segment.NextSegmentIndex);
+                segment.NextSegment = nextSegment;
+                return nextSegment;
             }
-            else
-            {
-                return null;
-            }
+
+            return null;
         }
 
         public static void ForEach(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment, Action<Segment> action)

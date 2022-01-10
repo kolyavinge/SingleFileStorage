@@ -19,8 +19,9 @@ namespace SingleFileStorage.Core
                 }
                 else
                 {
+                    if (segment.State == SegmentState.Last) break;
                     remainingBytes -= (int)(segment.EndPosition - storageFileStreamPosition);
-                    var nextSegment = SegmentIterator.GetNextSegment(storageFileStream, segmentBuffer, segment);
+                    var nextSegment = segment.NextSegment ?? SegmentIterator.GetNextSegment(storageFileStream, segmentBuffer, segment);
                     if (nextSegment == null) break;
                     segment = nextSegment;
                     storageFileStreamPosition = segment.DataStartPosition;

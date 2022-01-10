@@ -128,6 +128,7 @@ namespace SingleFileStorage.Core
         public readonly long EndPosition;
         public readonly long DataStartPosition;
         public bool IsModified;
+        public Segment NextSegment;
 
         private Segment(uint index, byte state, uint nextSegmentIndexOrDataLength)
         {
