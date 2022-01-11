@@ -310,6 +310,18 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
+        public void ReadAfterEndRecord()
+        {
+            var record = CreateEmptyRecord("record");
+            var recordContent = GetEmptyArray(2 * SizeConstants.SegmentData);
+            record.Write(recordContent, 0, recordContent.Length);
+            record.Seek(0, SeekOrigin.Begin);
+            var recordContentReadResult = new byte[recordContent.Length];
+            Assert.AreEqual(2 * SizeConstants.SegmentData, record.Read(recordContentReadResult, 0, recordContentReadResult.Length));
+            Assert.AreEqual(0, record.Read(recordContentReadResult, 0, recordContentReadResult.Length));
+        }
+
+        [Test]
         public void Segments_1()
         {
             var recordContent = GetRandomByteArray(100);

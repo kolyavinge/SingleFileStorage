@@ -27,6 +27,7 @@ namespace SingleFileStorage.Test.Maintenance
             _fileSystem.CurrentStorageFileStream.Dispose();
             _defragmentator.Defragment("current");
 
+            _fileSystem.DefragmentStorageFileStream.Open(Access.Read);
             Assert.AreEqual(1, _fileSystem.DefragmentStorage.GetAllRecordNames().Count);
         }
 
@@ -41,6 +42,7 @@ namespace SingleFileStorage.Test.Maintenance
             _fileSystem.CurrentStorageFileStream.Dispose();
             _defragmentator.Defragment("current");
 
+            _fileSystem.DefragmentStorageFileStream.Open(Access.Read);
             Assert.AreEqual(0, _fileSystem.DefragmentStorage.GetAllRecordNames().Count);
         }
 
@@ -60,6 +62,7 @@ namespace SingleFileStorage.Test.Maintenance
             _fileSystem.CurrentStorageFileStream.Dispose();
             _defragmentator.Defragment("current");
 
+            _fileSystem.DefragmentStorageFileStream.Open(Access.Read);
             Assert.AreEqual(0, _fileSystem.DefragmentStorage.GetAllRecordNames().Count);
         }
     }
