@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.IO;
 using SingleFileStorage;
+using SingleFileStorage.Maintenance;
 
 namespace StarterApp
 {
@@ -19,10 +20,11 @@ namespace StarterApp
             var allRecordNames = 0;
             var sequence = 0;
             var write = 0;
-            var bigWrite = 1;
+            var bigWrite = 0;
             var read = 0;
             var seek = 0;
             var setLength = 0;
+            var defragment = 1;
 
             File.Delete(_storageFileName);
             StorageFile.Create(_storageFileName);
@@ -77,9 +79,12 @@ namespace StarterApp
             {
                 SetLength();
             }
+            if (defragment == 1)
+            {
+                Defragment();
+            }
 
             sw.Stop();
-            File.Delete(_storageFileName);
             Console.WriteLine($"Total: {sw.Elapsed}");
             Console.WriteLine("done");
             Console.ReadKey();
@@ -309,6 +314,23 @@ namespace StarterApp
                     }
                 }
             }
+        }
+
+        private static void Defragment()
+        {
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
+            {
+                storage.CreateRecord("record");
+                var buffer = new byte[10 * 1024 * 1024];
+                using (var record = storage.OpenRecord("record"))
+                {
+                    record.Write(buffer, 0, buffer.Length);
+                    record.SetLength(1024 * 1024);
+                }
+            }
+
+            var defragmentator = DefragmentatorFactory.Make();
+            defragmentator.Defragment(_storageFileName);
         }
     }
 }
