@@ -50,18 +50,15 @@ namespace SingleFileStorage.Core
             {
                 _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
             }
-            int totalReaded = 0;
-            _readIterator.Iterate(_currentSegment, count, (segment, segmentAvailableBytes, totalIteratedBytes) =>
+            _readIterator.Iterate(_currentSegment, count, (segment, readAvailableBytes, writeAvailableBytes, totalIteratedBytes) =>
             {
-                int maxBytesToRead = (int)Math.Min(segment.DataStartPosition + segment.DataLength - _storageFileStream.Position, segmentAvailableBytes);
-                if (maxBytesToRead > 0)
-                    totalReaded += _storageFileStream.ReadByteArray(buffer, offset + (int)totalIteratedBytes, maxBytesToRead);
+                return _storageFileStream.ReadByteArray(buffer, offset + (int)totalIteratedBytes, readAvailableBytes);
             });
             _currentSegment = _readIterator.LastIteratedSegment;
-            _position += totalReaded;
+            _position += _readIterator.TotalIteratedBytes;
             _lastStorageFileStreamPosition = _storageFileStream.Position;
 
-            return totalReaded;
+            return (int)_readIterator.TotalIteratedBytes;
         }
 
         public override void Write(byte[] buffer, int offset, int count)
@@ -71,9 +68,10 @@ namespace SingleFileStorage.Core
             {
                 _storageFileStream.Seek(_lastStorageFileStreamPosition, SeekOrigin.Begin);
             }
-            _writeIterator.Iterate(_currentSegment, count, (segment, segmentAvailableBytes, totalIteratedBytes) =>
+            _writeIterator.Iterate(_currentSegment, count, (segment, readAvailableBytes, writeAvailableBytes, totalIteratedBytes) =>
             {
-                _storageFileStream.WriteByteArray(buffer, offset + (int)totalIteratedBytes, segmentAvailableBytes);
+                _storageFileStream.WriteByteArray(buffer, offset + (int)totalIteratedBytes, writeAvailableBytes);
+                return writeAvailableBytes;
             });
             _currentSegment = _writeIterator.LastIteratedSegment;
             _position += _writeIterator.TotalIteratedBytes + _writeIterator.RemainingBytes;

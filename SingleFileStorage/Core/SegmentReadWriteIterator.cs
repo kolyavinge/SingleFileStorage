@@ -1,11 +1,12 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using SingleFileStorage.Infrastructure;
 
 namespace SingleFileStorage.Core
 {
     class SegmentReadWriteIterator
     {
-        public delegate void IterationDelegate(Segment currentSegment, int segmentAvailableBytes, long totalIteratedBytes);
+        public delegate int IterationDelegate(Segment currentSegment, int readAvailableBytes, int writeAvailableBytes, long totalIteratedBytes);
 
         private readonly StorageFileStream _storageFileStream;
         private readonly SegmentBuffer _segmentBuffer;
@@ -27,20 +28,22 @@ namespace SingleFileStorage.Core
             var segment = startSegment;
             while (RemainingBytes > 0)
             {
-                int segmentAvailableBytes;
                 if (RemainingBytes <= segment.EndPosition - _storageFileStream.Position)
                 {
-                    segmentAvailableBytes = (int)RemainingBytes;
-                    RemainingBytes -= segmentAvailableBytes;
-                    iterationFunc(segment, segmentAvailableBytes, TotalIteratedBytes);
-                    TotalIteratedBytes += segmentAvailableBytes;
+                    int readAvailableBytes = (int)Math.Min(segment.DataStartPosition + segment.DataLength - _storageFileStream.Position, RemainingBytes);
+                    int writeAvailableBytes = (int)RemainingBytes;
+                    int iteratedBytes = iterationFunc(segment, readAvailableBytes, writeAvailableBytes, TotalIteratedBytes);
+                    if (iteratedBytes == 0) break;
+                    RemainingBytes -= iteratedBytes;
+                    TotalIteratedBytes += iteratedBytes;
                 }
                 else
                 {
-                    segmentAvailableBytes = (int)(segment.EndPosition - _storageFileStream.Position);
-                    RemainingBytes -= segmentAvailableBytes;
-                    iterationFunc(segment, segmentAvailableBytes, TotalIteratedBytes);
-                    TotalIteratedBytes += segmentAvailableBytes;
+                    int readAvailableBytes = (int)Math.Min(segment.DataStartPosition + segment.DataLength - _storageFileStream.Position, RemainingBytes);
+                    int writeAvailableBytes = (int)(segment.EndPosition - _storageFileStream.Position);
+                    int iteratedBytes = iterationFunc(segment, readAvailableBytes, writeAvailableBytes, TotalIteratedBytes);
+                    RemainingBytes -= iteratedBytes;
+                    TotalIteratedBytes += iteratedBytes;
                     if (segment.State == SegmentState.Last) break;
                     var nextSegment = segment.NextSegment ?? SegmentIterator.GetNextSegment(_storageFileStream, _segmentBuffer, segment);
                     if (nextSegment == null) break;
