@@ -6,7 +6,7 @@ namespace SingleFileStorage.Core
 {
     internal static class RecordName
     {
-        private static readonly string _validNameSymbols = "qwertyuiopasdfghjklzxcvbnm1234567890QWERTYUIOPASDFGHJKLZXCVBNM1234567890_. ";
+        private static readonly string _validNameSymbols = "qwertyuiopasdfghjklzxcvbnm1234567890QWERTYUIOPASDFGHJKLZXCVBNM1234567890_.# ";
 
         public static readonly int MaxLength = 256;
 
