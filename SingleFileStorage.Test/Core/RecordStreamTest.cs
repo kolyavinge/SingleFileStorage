@@ -2,8 +2,8 @@
 using System.IO;
 using NUnit.Framework;
 using SingleFileStorage.Core;
-using SingleFileStorage.Test.Utils;
 using SingleFileStorage.Test.Tools;
+using SingleFileStorage.Test.Utils;
 
 namespace SingleFileStorage.Test.Core
 {
@@ -541,6 +541,18 @@ namespace SingleFileStorage.Test.Core
             Assert.AreEqual(SegmentState.Last, segments[1].State);
             Assert.AreEqual(SizeConstants.SegmentData / 2 - 100, segments[1].DataLength);
             Assert.AreEqual(Segment.NullValue, segments[1].NextSegmentIndex);
+        }
+
+        [Test]
+        public void SetLength_Read()
+        {
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
+            var record = CreateRecordWithContent("record", recordContent);
+            record.SetLength(SizeConstants.SegmentData);
+            Array.Resize(ref recordContent, SizeConstants.SegmentData);
+            var recordContentReadResult = new byte[recordContent.Length];
+            record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
+            Assert.IsTrue(ByteArray.IsEqual(recordContent, recordContentReadResult));
         }
 
         [Test]
