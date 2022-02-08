@@ -14,6 +14,7 @@ namespace SingleFileStorage.Core
         }
 
         private readonly StorageFileStream _fileStream;
+        private uint _createRecordStartSegmentIndex;
 
         public Storage(StorageFileStream fileStream)
         {
@@ -39,7 +40,7 @@ namespace SingleFileStorage.Core
             RecordDescription.WriteState(_fileStream, RecordState.Used);
             RecordDescription.WriteName(_fileStream, recordName);
             long recordDescriptionFirstSegmentIndexPosition = _fileStream.Position;
-            _fileStream.Seek(SizeConstants.StorageDescription, SeekOrigin.Begin);
+            _fileStream.Seek(Segment.GetSegmentStartPosition(_createRecordStartSegmentIndex), SeekOrigin.Begin);
             uint firstSegmentIndex = Segment.FindNextFreeSegmentIndex(_fileStream);
             if (firstSegmentIndex != Segment.NullValue)
             {
@@ -50,6 +51,7 @@ namespace SingleFileStorage.Core
                 Segment.AppendEmptySegment(_fileStream, SegmentState.Last);
                 firstSegmentIndex = Segment.GetSegmentsCount(_fileStream.Length) - 1;
             }
+            _createRecordStartSegmentIndex = firstSegmentIndex + 1;
             _fileStream.Seek(recordDescriptionFirstSegmentIndexPosition, SeekOrigin.Begin);
             RecordDescription.WriteFirstSegmentIndex(_fileStream, firstSegmentIndex);
             RecordDescription.WriteLastSegmentIndex(_fileStream, firstSegmentIndex);
@@ -100,6 +102,7 @@ namespace SingleFileStorage.Core
             RecordDescription.WriteState(_fileStream, RecordState.Free);
             var firstSegment = Segment.GotoSegmentStartPositionAndCreate(_fileStream, recordDescription.FirstSegmentIndex);
             SegmentIterator.ForEach(_fileStream, new SegmentBuffer(), firstSegment, s => Segment.WriteState(_fileStream, SegmentState.Free));
+            _createRecordStartSegmentIndex = Math.Min(_createRecordStartSegmentIndex, firstSegment.Index);
         }
 
         public List<string> GetAllRecordNames()
