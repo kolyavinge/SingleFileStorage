@@ -221,15 +221,23 @@ namespace SingleFileStorage.Core
         {
             ThrowErrorIfNotModified();
             if (value < 0) throw new ArgumentException(nameof(value));
-            else if (value == Length) return;
-            else if (value < Length)
+            if (value == Length) return;
+            if (value < Length)
             {
                 _lastStorageFileStreamPosition = _storageFileStream.Seek(_firstSegment.DataStartPosition, SeekOrigin.Begin);
                 _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _firstSegment, value);
-                SegmentIterator.ForEachExceptFirst(_storageFileStream, _segmentBuffer, _currentSegment, s => Segment.WriteState(_storageFileStream, SegmentState.Free));
+                var iteratedSegments = SegmentIterator.ForEachExceptFirst(
+                    _storageFileStream, _segmentBuffer, _currentSegment, segment => Segment.WriteState(_storageFileStream, SegmentState.Free));
+                iteratedSegments.ForEach(segment =>
+                {
+                    segment.State = SegmentState.Free;
+                    segment.IsModified = true;
+                });
                 _currentSegment.State = SegmentState.Last;
-                _currentSegment.DataLength = (uint)(_storageFileStream.Position - _currentSegment.DataStartPosition);
+                _currentSegment.DataLength = (uint)(value > SizeConstants.SegmentData ? value % SizeConstants.SegmentData : value);
                 _currentSegment.NextSegmentIndex = Segment.NullValue;
+                _currentSegment.NextSegment = null;
+                _currentSegment.IsModified = true;
                 _storageFileStream.Seek(_currentSegment.StartPosition, SeekOrigin.Begin);
                 Segment.WriteState(_storageFileStream, _currentSegment.State);
                 Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, _currentSegment.DataLength);
@@ -239,10 +247,7 @@ namespace SingleFileStorage.Core
                 RecordDescription.WriteLastSegmentIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
                 RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
             }
-            else
-            {
-                throw new ArgumentException("Hasn't realised yet");
-            }
+            else throw new ArgumentException("Hasn't realised yet");
             _currentSegment = _firstSegment;
         }
 

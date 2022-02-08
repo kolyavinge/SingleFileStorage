@@ -13,6 +13,7 @@ namespace StarterApp
         static void Main(string[] args)
         {
             var createRecord = 0;
+            var createDeleteCreateRecord = 0;
             var openRecord = 0;
             var deleteRecord = 0;
             var renameRecord = 0;
@@ -24,7 +25,8 @@ namespace StarterApp
             var read = 0;
             var seek = 0;
             var setLength = 0;
-            var defragment = 1;
+            var setLengthZero = 1;
+            var defragment = 0;
 
             File.Delete(_storageFileName);
             StorageFile.Create(_storageFileName);
@@ -34,6 +36,10 @@ namespace StarterApp
             if (createRecord == 1)
             {
                 CreateRecord();
+            }
+            if (createDeleteCreateRecord == 1)
+            {
+                CreateDeleteCreateRecord();
             }
             if (openRecord == 1)
             {
@@ -78,6 +84,10 @@ namespace StarterApp
             if (setLength == 1)
             {
                 SetLength();
+            }
+            if (setLengthZero == 1)
+            {
+                SetLengthZero();
             }
             if (defragment == 1)
             {
@@ -130,6 +140,31 @@ namespace StarterApp
                 for (int i = 0; i < 1000; i++)
                 {
                     storage.DeleteRecord(i.ToString());
+                }
+            }
+        }
+
+        private static void CreateDeleteCreateRecord()
+        {
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.CreateRecord(i.ToString());
+                }
+            }
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.DeleteRecord(i.ToString());
+                }
+            }
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
+            {
+                for (int i = 0; i < 1000; i++)
+                {
+                    storage.CreateRecord(i.ToString());
                 }
             }
         }
@@ -312,6 +347,27 @@ namespace StarterApp
                     {
                         record.SetLength(buffer.Length - 0);
                     }
+                }
+            }
+        }
+
+        private static void SetLengthZero()
+        {
+            var buffer = new byte[100000000];
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
+            {
+                storage.CreateRecord("record");
+                using (var record = storage.OpenRecord("record"))
+                {
+                    record.Write(buffer, 0, buffer.Length);
+                    record.SetLength(0);
+                }
+            }
+            using (var storage = StorageFile.Open(_storageFileName, Access.Modify))
+            {
+                using (var record = storage.OpenRecord("record"))
+                {
+                    record.Write(buffer, 0, buffer.Length);
                 }
             }
         }

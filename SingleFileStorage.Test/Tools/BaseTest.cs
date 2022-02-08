@@ -73,6 +73,22 @@ namespace SingleFileStorage.Test.Tools
             return result;
         }
 
+        public List<Segment> GetAllSegments()
+        {
+            var result = new List<Segment>();
+            var position = _memoryStream.Position;
+            _memoryStream.Seek(0, SeekOrigin.Begin);
+            uint segmentsCount = Segment.GetSegmentsCount(_memoryStream.Length);
+            for (uint segmentIndex = 0; segmentIndex < segmentsCount; segmentIndex++)
+            {
+                var segment = Segment.GotoSegmentStartPositionAndCreate(_memoryStream, segmentIndex);
+                result.Add(segment);
+            }
+            _memoryStream.Seek(position, SeekOrigin.Begin);
+
+            return result;
+        }
+
         public byte[] GetRandomByteArray(int size)
         {
             var result = new byte[size];

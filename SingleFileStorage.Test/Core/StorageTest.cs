@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using NUnit.Framework;
 using SingleFileStorage.Core;
 using SingleFileStorage.Test.Tools;
@@ -34,6 +35,23 @@ namespace SingleFileStorage.Test.Core
             catch (IOException exp)
             {
                 Assert.AreEqual("Record 'record' already exists.", exp.Message);
+            }
+        }
+
+        [Test]
+        public void CreateRecord_MaxRecordsCount()
+        {
+            for (int i = 0; i < SizeConstants.MaxRecordsCount; i++)
+            {
+                _storage.CreateRecord(i.ToString());
+            }
+            var allRecords = _storage.GetAllRecordNames().ToList();
+            Assert.AreEqual(SizeConstants.MaxRecordsCount, allRecords.Count);
+            var allSegments = GetAllSegments();
+            Assert.AreEqual(SizeConstants.MaxRecordsCount, allSegments.Count);
+            for (int i = 0; i < SizeConstants.MaxRecordsCount; i++)
+            {
+                Assert.AreEqual(i.ToString(), allRecords[i]);
             }
         }
 
@@ -184,6 +202,19 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
+        public void DeleteRecord2()
+        {
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
+            var record = CreateRecordWithContent("record", recordContent);
+            record.Dispose();
+            _storage.DeleteRecord("record");
+            var allSegments = GetAllSegments();
+            Assert.AreEqual(2, allSegments.Count);
+            Assert.AreEqual(SegmentState.Free, allSegments[0].State);
+            Assert.AreEqual(SegmentState.Free, allSegments[1].State);
+        }
+
+        [Test]
         public void DeleteRecord_CreateWithSameName()
         {
             _storage.CreateRecord("record");
@@ -208,6 +239,18 @@ namespace SingleFileStorage.Test.Core
             {
                 Assert.AreEqual("Storage cannot be modified.", exp.Message);
             }
+        }
+
+        [Test]
+        public void DeleteRecord_CreateAndDelete()
+        {
+            _storage.CreateRecord("record1");
+            _storage.CreateRecord("record2");
+            _storage.CreateRecord("record3");
+            _storage.DeleteRecord("record3");
+            _storage.CreateRecord("record4");
+            var allSegments = GetAllSegments();
+            Assert.AreEqual(3, allSegments.Count);
         }
 
         [Test]

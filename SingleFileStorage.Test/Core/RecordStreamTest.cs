@@ -556,6 +556,20 @@ namespace SingleFileStorage.Test.Core
         }
 
         [Test]
+        public void SetLength_CheckSegments()
+        {
+            var recordContent = GetRandomByteArray(3 * SizeConstants.SegmentData);
+            var record = CreateRecordWithContent("record", recordContent);
+            record.SetLength(SizeConstants.SegmentData);
+            record.Dispose();
+            var allSegments = GetAllSegments();
+            Assert.AreEqual(3, allSegments.Count);
+            Assert.AreEqual(SegmentState.Last, allSegments[0].State);
+            Assert.AreEqual(SegmentState.Free, allSegments[1].State);
+            Assert.AreEqual(SegmentState.Free, allSegments[2].State);
+        }
+
+        [Test]
         public void OpenReadAndTrySetLength_Error()
         {
             var recordContent = GetRandomByteArray(SizeConstants.SegmentData);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using SingleFileStorage.Infrastructure;
 
@@ -26,25 +27,29 @@ namespace SingleFileStorage.Core
         public static void ForEach(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment, Action<Segment> action)
         {
             var current = segment;
+            storageFileStream.Seek(current.StartPosition, SeekOrigin.Begin);
             while (true)
             {
                 action(current);
                 current = GetNextSegment(storageFileStream, segmentBuffer, current);
                 if (current == null) return;
-                storageFileStream.Seek(current.DataStartPosition, SeekOrigin.Begin);
+                storageFileStream.Seek(current.StartPosition, SeekOrigin.Begin);
             }
         }
 
-        public static void ForEachExceptFirst(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment, Action<Segment> action)
+        public static List<Segment> ForEachExceptFirst(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment, Action<Segment> action)
         {
+            var iteratedSegments = new List<Segment>();
             var current = GetNextSegment(storageFileStream, segmentBuffer, segment);
-            if (current == null) return;
+            if (current == null) return iteratedSegments;
+            storageFileStream.Seek(current.StartPosition, SeekOrigin.Begin);
             while (true)
             {
                 action(current);
+                iteratedSegments.Add(current);
                 current = GetNextSegment(storageFileStream, segmentBuffer, current);
-                if (current == null) return;
-                storageFileStream.Seek(current.DataStartPosition, SeekOrigin.Begin);
+                if (current == null) return iteratedSegments;
+                storageFileStream.Seek(current.StartPosition, SeekOrigin.Begin);
             }
         }
     }
