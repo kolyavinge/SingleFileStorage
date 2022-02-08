@@ -281,7 +281,7 @@ namespace SingleFileStorage.Core
 
         private void ThrowErrorIfNotModified()
         {
-            if (!_canModify) throw new InvalidOperationException("Stream cannot be modified.");
+            if (!_canModify) throw new InvalidOperationException("Stream is opened with Read access and cannot be modified.");
         }
     }
 }

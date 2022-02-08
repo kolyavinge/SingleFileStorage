@@ -38,7 +38,7 @@ namespace SingleFileStorage.Test.Core
             }
             catch (Exception exp)
             {
-                Assert.AreEqual("Stream cannot be modified.", exp.Message);
+                Assert.AreEqual("Stream is opened with Read access and cannot be modified.", exp.Message);
             }
         }
 
@@ -585,7 +585,7 @@ namespace SingleFileStorage.Test.Core
             }
             catch (Exception exp)
             {
-                Assert.AreEqual("Stream cannot be modified.", exp.Message);
+                Assert.AreEqual("Stream is opened with Read access and cannot be modified.", exp.Message);
             }
         }
     }
