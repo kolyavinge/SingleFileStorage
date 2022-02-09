@@ -103,7 +103,7 @@ namespace SingleFileStorage.Core
         public uint RecordLength;
         public readonly long LastSegmentIndexPosition;
         public readonly long RecordLengthStartPosition;
-        public bool IsModified;
+        public bool SaveOnClose;
 
         private RecordDescription(IReadableStream stream, byte state)
         {

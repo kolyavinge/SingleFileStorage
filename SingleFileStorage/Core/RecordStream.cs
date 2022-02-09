@@ -84,39 +84,72 @@ namespace SingleFileStorage.Core
                     if (newDataLength > _currentSegment.DataLength)
                     {
                         _currentSegment.DataLength = newDataLength;
-                        _currentSegment.IsModified = true;
+                        _currentSegment.SaveOnClose = true;
                     }
                     if (_position > _recordDescription.RecordLength)
                     {
                         _recordDescription.RecordLength = (uint)_position;
-                        _recordDescription.IsModified = true;
+                        _recordDescription.SaveOnClose = true;
                     }
                 }
             }
             else
             {
-                uint lastSegmentIndex = Segment.GetSegmentsCount(_storageFileStream.Length) - 1;
-                _currentSegment.State = SegmentState.Chained;
-                _currentSegment.DataLength = SizeConstants.SegmentData;
-                _currentSegment.NextSegmentIndex = lastSegmentIndex + 1;
-                _currentSegment.IsModified = true;
-                _storageFileStream.Seek(0, SeekOrigin.End);
-                int currentOffset = offset + (int)_writeIterator.TotalIteratedBytes;
                 long remainingBytes = _writeIterator.RemainingBytes;
-                while (remainingBytes > SizeConstants.SegmentData)
+                int currentOffset = offset + (int)_writeIterator.TotalIteratedBytes;
+                Segment nextFreeSegment;
+                while (remainingBytes > 0 &&
+                       _storageFileStream.Position < _storageFileStream.Length &&
+                       (nextFreeSegment = Segment.CreateFromCurrentPosition(_storageFileStream)).State == SegmentState.Free)
                 {
-                    lastSegmentIndex++;
-                    Segment.AppendSegment(_storageFileStream, SegmentState.Chained, lastSegmentIndex + 1, buffer, currentOffset, SizeConstants.SegmentData);
-                    currentOffset += SizeConstants.SegmentData;
-                    remainingBytes -= SizeConstants.SegmentData;
+                    _currentSegment.State = SegmentState.Chained;
+                    _currentSegment.DataLength = SizeConstants.SegmentData;
+                    _currentSegment.NextSegmentIndex = nextFreeSegment.Index;
+                    _currentSegment.NextSegment = nextFreeSegment;
+                    _currentSegment.SaveOnClose = true;
+                    _storageFileStream.Seek(nextFreeSegment.DataStartPosition, SeekOrigin.Begin);
+                    if (remainingBytes > SizeConstants.SegmentData)
+                    {
+                        Segment.WriteData(_storageFileStream, buffer, currentOffset, SizeConstants.SegmentData);
+                        currentOffset += SizeConstants.SegmentData;
+                        remainingBytes -= SizeConstants.SegmentData;
+                    }
+                    else
+                    {
+                        nextFreeSegment.State = SegmentState.Last;
+                        nextFreeSegment.DataLength = (uint)remainingBytes;
+                        nextFreeSegment.NextSegmentIndex = Segment.NullValue;
+                        nextFreeSegment.NextSegment = null;
+                        nextFreeSegment.SaveOnClose = true;
+                        Segment.WriteData(_storageFileStream, buffer, currentOffset, (int)remainingBytes);
+                        remainingBytes = 0;
+                    }
+                    _segmentBuffer.Add(nextFreeSegment);
+                    _currentSegment = nextFreeSegment;
+                    _lastStorageFileStreamPosition = _storageFileStream.Position;
                 }
-                Segment.AppendSegment(_storageFileStream, SegmentState.Last, (uint)remainingBytes, buffer, currentOffset, (int)remainingBytes, out _currentSegment);
-                _currentSegment.IsModified = true;
-                _lastStorageFileStreamPosition = _currentSegment.DataStartPosition + (int)remainingBytes;
+                if (remainingBytes > 0)
+                {
+                    uint lastSegmentIndex = Segment.GetSegmentsCount(_storageFileStream.Length) - 1;
+                    _currentSegment.State = SegmentState.Chained;
+                    _currentSegment.DataLength = SizeConstants.SegmentData;
+                    _currentSegment.NextSegmentIndex = lastSegmentIndex + 1;
+                    _currentSegment.SaveOnClose = true;
+                    _storageFileStream.Seek(0, SeekOrigin.End);
+                    while (remainingBytes > SizeConstants.SegmentData)
+                    {
+                        lastSegmentIndex++;
+                        Segment.AppendSegment(_storageFileStream, SegmentState.Chained, lastSegmentIndex + 1, buffer, currentOffset, SizeConstants.SegmentData);
+                        currentOffset += SizeConstants.SegmentData;
+                        remainingBytes -= SizeConstants.SegmentData;
+                    }
+                    Segment.AppendSegment(_storageFileStream, SegmentState.Last, (uint)remainingBytes, buffer, currentOffset, (int)remainingBytes, out _currentSegment);
+                    _lastStorageFileStreamPosition = _currentSegment.DataStartPosition + (int)remainingBytes;
+                    _segmentBuffer.Add(_currentSegment);
+                }
                 _recordDescription.LastSegmentIndex = _currentSegment.Index;
                 _recordDescription.RecordLength = (uint)_position;
-                _recordDescription.IsModified = true;
-                _segmentBuffer.Add(_currentSegment);
+                _recordDescription.SaveOnClose = true;
             }
         }
 
@@ -228,16 +261,11 @@ namespace SingleFileStorage.Core
                 _currentSegment = SegmentPositionIterator.IterateAndGetLastSegment(_storageFileStream, _segmentBuffer, _firstSegment, value);
                 var iteratedSegments = SegmentIterator.ForEachExceptFirst(
                     _storageFileStream, _segmentBuffer, _currentSegment, segment => Segment.WriteState(_storageFileStream, SegmentState.Free));
-                iteratedSegments.ForEach(segment =>
-                {
-                    segment.State = SegmentState.Free;
-                    segment.IsModified = true;
-                });
+                iteratedSegments.ForEach(segment => segment.State = SegmentState.Free);
                 _currentSegment.State = SegmentState.Last;
                 _currentSegment.DataLength = (uint)(value > SizeConstants.SegmentData ? value % SizeConstants.SegmentData : value);
                 _currentSegment.NextSegmentIndex = Segment.NullValue;
                 _currentSegment.NextSegment = null;
-                _currentSegment.IsModified = true;
                 _storageFileStream.Seek(_currentSegment.StartPosition, SeekOrigin.Begin);
                 Segment.WriteState(_storageFileStream, _currentSegment.State);
                 Segment.WriteNextSegmentIndexOrDataLength(_storageFileStream, _currentSegment.DataLength);
@@ -246,23 +274,23 @@ namespace SingleFileStorage.Core
                 _storageFileStream.Seek(_recordDescription.LastSegmentIndexPosition, SeekOrigin.Begin);
                 RecordDescription.WriteLastSegmentIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
                 RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
+                _currentSegment = _firstSegment;
             }
             else throw new ArgumentException("Hasn't realised yet");
-            _currentSegment = _firstSegment;
         }
 
         public override void Flush() { }
 
         public override void Close()
         {
-            if (_recordDescription.IsModified)
+            if (_recordDescription.SaveOnClose)
             {
                 _storageFileStream.Seek(_recordDescription.LastSegmentIndexPosition, SeekOrigin.Begin);
                 RecordDescription.WriteLastSegmentIndex(_storageFileStream, _recordDescription.LastSegmentIndex);
                 RecordDescription.WriteLength(_storageFileStream, _recordDescription.RecordLength);
             }
 
-            foreach (var segment in _segmentBuffer.GetAll().Where(x => x.IsModified))
+            foreach (var segment in _segmentBuffer.GetAll().Where(x => x.SaveOnClose))
             {
                 _storageFileStream.Seek(segment.StartPosition, SeekOrigin.Begin);
                 Segment.WriteState(_storageFileStream, segment.State);

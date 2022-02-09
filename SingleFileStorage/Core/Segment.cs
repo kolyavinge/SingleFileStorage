@@ -8,6 +8,13 @@ namespace SingleFileStorage.Core
     {
         public const uint NullValue = UInt32.MaxValue;
 
+        public static byte PeekState(StorageFileStream storageFileStream)
+        {
+            var state = storageFileStream.ReadByte();
+            storageFileStream.Seek(-1, SeekOrigin.Current);
+            return state;
+        }
+
         public static byte ReadState(StorageFileStream storageFileStream)
         {
             return storageFileStream.ReadByte();
@@ -28,7 +35,7 @@ namespace SingleFileStorage.Core
             storageFileStream.WriteUInt32(value);
         }
 
-        private static void WriteData(StorageFileStream storageFileStream, byte[] buffer, int offset, int count)
+        public static void WriteData(StorageFileStream storageFileStream, byte[] buffer, int offset, int count)
         {
             if (count > SizeConstants.SegmentData) throw new ArgumentException($"Count must be less or equal {SizeConstants.SegmentData}");
             storageFileStream.WriteByteArray(buffer, offset, count);
@@ -127,7 +134,7 @@ namespace SingleFileStorage.Core
         public readonly long StartPosition;
         public readonly long EndPosition;
         public readonly long DataStartPosition;
-        public bool IsModified;
+        public bool SaveOnClose;
         public Segment NextSegment;
 
         private Segment(uint index, byte state, uint nextSegmentIndexOrDataLength)

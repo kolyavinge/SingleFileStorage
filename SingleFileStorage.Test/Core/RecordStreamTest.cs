@@ -317,8 +317,83 @@ namespace SingleFileStorage.Test.Core
             record.Write(recordContent, 0, recordContent.Length);
             record.Seek(0, SeekOrigin.Begin);
             var recordContentReadResult = new byte[recordContent.Length];
-            Assert.AreEqual(2 * SizeConstants.SegmentData, record.Read(recordContentReadResult, 0, recordContentReadResult.Length));
+            var count = record.Read(recordContentReadResult, 0, recordContentReadResult.Length);
+            Assert.AreEqual(2 * SizeConstants.SegmentData, count);
             Assert.AreEqual(0, record.Read(recordContentReadResult, 0, recordContentReadResult.Length));
+        }
+
+        [Test]
+        public void CreateRecordFreeSegments()
+        {
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
+            var record = CreateRecordWithContent("record1", recordContent);
+            record.Dispose();
+            _storage.DeleteRecord("record1");
+            var allSegments = GetAllSegments();
+            Assert.AreEqual(3, allSegments.Count);
+            Assert.AreEqual(SegmentState.Free, allSegments[0].State);
+            Assert.AreEqual(SegmentState.Free, allSegments[1].State);
+            Assert.AreEqual(SegmentState.Free, allSegments[2].State);
+            record = CreateRecordWithContent("record2", recordContent);
+            record.Dispose();
+            allSegments = GetAllSegments();
+            Assert.AreEqual(3, allSegments.Count);
+            Assert.AreEqual(SegmentState.Chained, allSegments[0].State);
+            Assert.AreEqual(SizeConstants.SegmentData, allSegments[0].DataLength);
+            Assert.AreEqual(1, allSegments[0].NextSegmentIndex);
+            Assert.AreEqual(SegmentState.Chained, allSegments[1].State);
+            Assert.AreEqual(SizeConstants.SegmentData, allSegments[1].DataLength);
+            Assert.AreEqual(2, allSegments[1].NextSegmentIndex);
+            Assert.AreEqual(SegmentState.Last, allSegments[2].State);
+            Assert.AreEqual(SizeConstants.SegmentData / 2, allSegments[2].DataLength);
+            Assert.AreEqual(Segment.NullValue, allSegments[2].NextSegmentIndex);
+            var recordDescription = GetRecordDescription("record2");
+            Assert.AreEqual(2, recordDescription.LastSegmentIndex);
+            Assert.AreEqual(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2, recordDescription.RecordLength);
+        }
+
+        [Test]
+        public void CreateRecordFreeSegmentsAndNewOne()
+        {
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData);
+            var record = CreateRecordWithContent("record1", recordContent);
+            record.Dispose();
+            _storage.DeleteRecord("record1");
+            recordContent = GetRandomByteArray(3 * SizeConstants.SegmentData);
+            record = CreateRecordWithContent("record2", recordContent);
+            record.Dispose();
+            var allSegments = GetAllSegments();
+            Assert.AreEqual(3, allSegments.Count);
+            Assert.AreEqual(SegmentState.Chained, allSegments[0].State);
+            Assert.AreEqual(SizeConstants.SegmentData, allSegments[0].DataLength);
+            Assert.AreEqual(1, allSegments[0].NextSegmentIndex);
+            Assert.AreEqual(SegmentState.Chained, allSegments[1].State);
+            Assert.AreEqual(SizeConstants.SegmentData, allSegments[1].DataLength);
+            Assert.AreEqual(2, allSegments[1].NextSegmentIndex);
+            Assert.AreEqual(SegmentState.Last, allSegments[2].State);
+            Assert.AreEqual(SizeConstants.SegmentData, allSegments[2].DataLength);
+            Assert.AreEqual(Segment.NullValue, allSegments[2].NextSegmentIndex);
+            var recordDescription = GetRecordDescription("record2");
+            Assert.AreEqual(2, recordDescription.LastSegmentIndex);
+            Assert.AreEqual(3 * SizeConstants.SegmentData, recordDescription.RecordLength);
+        }
+
+        [Test]
+        public void CreateRecordFreeSegmentsAndWrite()
+        {
+            var recordContent = GetRandomByteArray(2 * SizeConstants.SegmentData + SizeConstants.SegmentData / 2);
+            var record = CreateRecordWithContent("record1", recordContent);
+            record.Dispose();
+            _storage.DeleteRecord("record1");
+            recordContent = GetRandomByteArray(3 * SizeConstants.SegmentData);
+            record = CreateRecordWithContent("record2", recordContent);
+            record.Write(recordContent, 0, 3 * SizeConstants.SegmentData);
+            record.Dispose();
+            var allSegments = GetAllSegments();
+            Assert.AreEqual(6, allSegments.Count);
+            var recordDescription = GetRecordDescription("record2");
+            Assert.AreEqual(5, recordDescription.LastSegmentIndex);
+            Assert.AreEqual(6 * SizeConstants.SegmentData, recordDescription.RecordLength);
         }
 
         [Test]
