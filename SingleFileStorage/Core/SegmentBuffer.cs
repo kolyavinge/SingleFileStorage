@@ -1,40 +1,39 @@
 ﻿using System.Collections.Generic;
 using SingleFileStorage.Infrastructure;
 
-namespace SingleFileStorage.Core
+namespace SingleFileStorage.Core;
+
+class SegmentBuffer
 {
-    class SegmentBuffer
+    private readonly Dictionary<uint, Segment> _segments;
+
+    public SegmentBuffer()
     {
-        private readonly Dictionary<uint, Segment> _segments;
+        _segments = new Dictionary<uint, Segment>();
+    }
 
-        public SegmentBuffer()
+    public Segment GetByIndex(StorageFileStream storageFileStream, uint segmentIndex)
+    {
+        if (_segments.TryGetValue(segmentIndex, out var segment))
         {
-            _segments = new Dictionary<uint, Segment>();
+            return segment;
         }
-
-        public Segment GetByIndex(StorageFileStream storageFileStream, uint segmentIndex)
+        else
         {
-            if (_segments.TryGetValue(segmentIndex, out var segment))
-            {
-                return segment;
-            }
-            else
-            {
-                segment = Segment.GotoSegmentStartPositionAndCreate(storageFileStream, segmentIndex);
-                _segments.Add(segmentIndex, segment);
+            segment = Segment.GotoSegmentStartPositionAndCreate(storageFileStream, segmentIndex);
+            _segments.Add(segmentIndex, segment);
 
-                return segment;
-            }
+            return segment;
         }
+    }
 
-        public IEnumerable<Segment> GetAll()
-        {
-            return _segments.Values;
-        }
+    public IEnumerable<Segment> GetAll()
+    {
+        return _segments.Values;
+    }
 
-        public void Add(Segment segment)
-        {
-            _segments.Add(segment.Index, segment);
-        }
+    public void Add(Segment segment)
+    {
+        _segments.Add(segment.Index, segment);
     }
 }

@@ -1,35 +1,34 @@
 ﻿using System.IO;
 
-namespace SingleFileStorage.Maintenance
+namespace SingleFileStorage.Maintenance;
+
+internal interface IFileSystem
 {
-    internal interface IFileSystem
+    void CreateStorageFile(string fullPath);
+    IStorage OpenStorageFile(string fullPath, Access access);
+    void RenameFile(string fullPath, string renamedFilePath);
+    void DeleteFile(string fullPath);
+}
+
+class FileSystem : IFileSystem
+{
+    public void CreateStorageFile(string fullPath)
     {
-        void CreateStorageFile(string fullPath);
-        IStorage OpenStorageFile(string fullPath, Access access);
-        void RenameFile(string fullPath, string renamedFilePath);
-        void DeleteFile(string fullPath);
+        StorageFile.Create(fullPath);
     }
 
-    class FileSystem : IFileSystem
+    public IStorage OpenStorageFile(string fullPath, Access access)
     {
-        public void CreateStorageFile(string fullPath)
-        {
-            StorageFile.Create(fullPath);
-        }
+        return StorageFile.Open(fullPath, access);
+    }
 
-        public IStorage OpenStorageFile(string fullPath, Access access)
-        {
-            return StorageFile.Open(fullPath, access);
-        }
+    public void RenameFile(string fullPath, string renamedFilePath)
+    {
+        File.Move(fullPath, renamedFilePath);
+    }
 
-        public void RenameFile(string fullPath, string renamedFilePath)
-        {
-            File.Move(fullPath, renamedFilePath);
-        }
-
-        public void DeleteFile(string fullPath)
-        {
-            File.Delete(fullPath);
-        }
+    public void DeleteFile(string fullPath)
+    {
+        File.Delete(fullPath);
     }
 }

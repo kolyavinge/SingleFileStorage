@@ -2,22 +2,21 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace SingleFileStorage
+namespace SingleFileStorage;
+
+public interface IStorage : IDisposable
 {
-    public interface IStorage : IDisposable
-    {
-        Access AccessMode { get; }
+    Access AccessMode { get; }
 
-        void CreateRecord(string recordName);
+    void CreateRecord(string recordName);
 
-        Stream OpenRecord(string recordName);
+    Stream OpenRecord(string recordName);
 
-        bool IsRecordExist(string recordName);
+    bool IsRecordExist(string recordName);
 
-        void RenameRecord(string oldRecordName, string newRecordName);
+    void RenameRecord(string oldRecordName, string newRecordName);
 
-        void DeleteRecord(string recordName);
+    void DeleteRecord(string recordName);
 
-        List<string> GetAllRecordNames();
-    }
+    List<string> GetAllRecordNames();
 }

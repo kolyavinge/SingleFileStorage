@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace SingleFileStorage;
 
-namespace SingleFileStorage
+public enum Access
 {
-    public enum Access
-    {
-        Read = 1,
-        Modify = 2
-    }
+    Read = 1,
+    Modify = 2
 }

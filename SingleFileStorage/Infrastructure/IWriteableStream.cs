@@ -1,18 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
+﻿using System.IO;
 
-namespace SingleFileStorage.Infrastructure
+namespace SingleFileStorage.Infrastructure;
+
+internal interface IWriteableStream
 {
-    internal interface IWriteableStream
-    {
-        void WriteByte(byte value);
+    void WriteByte(byte value);
 
-        void WriteUInt32(uint value);
+    void WriteUInt32(uint value);
 
-        void WriteByteArray(byte[] buffer, int offset, int count);
+    void WriteByteArray(byte[] buffer, int offset, int count);
 
-        long Seek(long offset, SeekOrigin origin);
-    }
+    long Seek(long offset, SeekOrigin origin);
 }

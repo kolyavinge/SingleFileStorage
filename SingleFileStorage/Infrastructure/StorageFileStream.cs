@@ -1,87 +1,86 @@
 ﻿using System;
 using System.IO;
 
-namespace SingleFileStorage.Infrastructure
+namespace SingleFileStorage.Infrastructure;
+
+internal abstract class StorageFileStream : IReadableStream, IWriteableStream, IDisposable
 {
-    internal abstract class StorageFileStream : IReadableStream, IWriteableStream, IDisposable
+    private Stream _stream;
+    private BinaryReader _reader;
+    private BinaryWriter _writer;
+
+    public Access AccessMode;
+    public long Position; // сделано полем для оптимизации 
+    public long Length => _stream.Length;
+
+    public void Open(Access access)
     {
-        private Stream _stream;
-        private BinaryReader _reader;
-        private BinaryWriter _writer;
+        AccessMode = access;
+        _stream = OpenStream(access);
+        Position = _stream.Position;
+        _reader = new BinaryReader(_stream);
+        if (access == Access.Modify) _writer = new BinaryWriter(_stream);
+        else _writer = null;
+    }
 
-        public Access AccessMode;
-        public long Position; // сделано полем для оптимизации 
-        public long Length => _stream.Length;
+    protected abstract Stream OpenStream(Access access);
 
-        public void Open(Access access)
-        {
-            AccessMode = access;
-            _stream = OpenStream(access);
-            Position = _stream.Position;
-            _reader = new BinaryReader(_stream);
-            if (access == Access.Modify) _writer = new BinaryWriter(_stream);
-            else _writer = null;
-        }
+    public virtual void Dispose()
+    {
+        _stream.Dispose();
+        _reader.Dispose();
+        if (_writer != null) _writer.Dispose();
+    }
 
-        protected abstract Stream OpenStream(Access access);
+    public byte ReadByte()
+    {
+        Position++;
+        return _reader.ReadByte();
+    }
 
-        public virtual void Dispose()
-        {
-            _stream.Dispose();
-            _reader.Dispose();
-            if (_writer != null) _writer.Dispose();
-        }
+    public uint ReadUInt32()
+    {
+        Position += sizeof(uint);
+        return _reader.ReadUInt32();
+    }
 
-        public byte ReadByte()
-        {
-            Position++;
-            return _reader.ReadByte();
-        }
+    public int ReadByteArray(byte[] buffer, int offset, int count)
+    {
+        var result = _stream.Read(buffer, offset, count);
+        Position += result;
 
-        public uint ReadUInt32()
-        {
-            Position += sizeof(uint);
-            return _reader.ReadUInt32();
-        }
+        return result;
+    }
 
-        public int ReadByteArray(byte[] buffer, int offset, int count)
-        {
-            var result = _stream.Read(buffer, offset, count);
-            Position += result;
+    public void WriteByte(byte value)
+    {
+        Position++;
+        _writer.Write(value);
+    }
 
-            return result;
-        }
+    public void WriteUInt32(uint value)
+    {
+        Position += sizeof(uint);
+        _writer.Write(value);
+    }
 
-        public void WriteByte(byte value)
-        {
-            Position++;
-            _writer.Write(value);
-        }
+    public void WriteByteArray(byte[] buffer, int offset, int count)
+    {
+        Position += count;
+        _writer.Write(buffer, offset, count);
+    }
 
-        public void WriteUInt32(uint value)
-        {
-            Position += sizeof(uint);
-            _writer.Write(value);
-        }
+    public long Seek(long offset, SeekOrigin origin)
+    {
+        if (origin == SeekOrigin.Begin) Position = offset;
+        else if (origin == SeekOrigin.Current) Position += offset;
+        else Position = Length + offset;
 
-        public void WriteByteArray(byte[] buffer, int offset, int count)
-        {
-            Position += count;
-            _writer.Write(buffer, offset, count);
-        }
+        return _stream.Seek(offset, origin);
+    }
 
-        public long Seek(long offset, SeekOrigin origin)
-        {
-            if (origin == SeekOrigin.Begin) Position = offset;
-            else if (origin == SeekOrigin.Current) Position += offset;
-            else Position = Length + offset;
-
-            return _stream.Seek(offset, origin);
-        }
-
-        public void Flush()
-        {
-            _stream.Flush();
-        }
+    public void Flush()
+    {
+        _stream.Flush();
     }
 }

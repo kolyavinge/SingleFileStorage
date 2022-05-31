@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace SingleFileStorage.Core;
 
-namespace SingleFileStorage.Core
+static class RecordState
 {
-    static class RecordState
-    {
-        public const byte Free = 0;
+    public const byte Free = 0;
 
-        public const byte Used = 1;
-    }
+    public const byte Used = 1;
 }
