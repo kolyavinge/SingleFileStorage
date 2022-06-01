@@ -7,7 +7,7 @@ namespace SingleFileStorage.Core;
 
 static class SegmentIterator
 {
-    public static Segment GetNextSegment(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment)
+    public static Segment? GetNextSegment(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment)
     {
         if (segment.NextSegment != null)
         {

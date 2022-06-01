@@ -11,7 +11,7 @@ class SegmentReadWriteIterator
     private readonly StorageFileStream _storageFileStream;
     private readonly SegmentBuffer _segmentBuffer;
 
-    public Segment LastIteratedSegment;
+    public Segment? LastIteratedSegment;
     public long RemainingBytes;
     public long TotalIteratedBytes;
 

@@ -5,13 +5,13 @@ namespace SingleFileStorage.Infrastructure;
 
 internal abstract class StorageFileStream : IReadableStream, IWriteableStream, IDisposable
 {
-    private Stream _stream;
-    private BinaryReader _reader;
-    private BinaryWriter _writer;
+    private Stream? _stream;
+    private BinaryReader? _reader;
+    private BinaryWriter? _writer;
 
     public Access AccessMode;
     public long Position; // сделано полем для оптимизации 
-    public long Length => _stream.Length;
+    public long Length => _stream!.Length;
 
     public void Open(Access access)
     {
@@ -27,26 +27,26 @@ internal abstract class StorageFileStream : IReadableStream, IWriteableStream, I
 
     public virtual void Dispose()
     {
-        _stream.Dispose();
-        _reader.Dispose();
+        if (_stream != null) _stream.Dispose();
+        if (_reader != null) _reader.Dispose();
         if (_writer != null) _writer.Dispose();
     }
 
     public byte ReadByte()
     {
         Position++;
-        return _reader.ReadByte();
+        return _reader!.ReadByte();
     }
 
     public uint ReadUInt32()
     {
         Position += sizeof(uint);
-        return _reader.ReadUInt32();
+        return _reader!.ReadUInt32();
     }
 
     public int ReadByteArray(byte[] buffer, int offset, int count)
     {
-        var result = _stream.Read(buffer, offset, count);
+        var result = _stream!.Read(buffer, offset, count);
         Position += result;
 
         return result;
@@ -55,19 +55,19 @@ internal abstract class StorageFileStream : IReadableStream, IWriteableStream, I
     public void WriteByte(byte value)
     {
         Position++;
-        _writer.Write(value);
+        _writer!.Write(value);
     }
 
     public void WriteUInt32(uint value)
     {
         Position += sizeof(uint);
-        _writer.Write(value);
+        _writer!.Write(value);
     }
 
     public void WriteByteArray(byte[] buffer, int offset, int count)
     {
         Position += count;
-        _writer.Write(buffer, offset, count);
+        _writer!.Write(buffer, offset, count);
     }
 
     public long Seek(long offset, SeekOrigin origin)
@@ -76,11 +76,11 @@ internal abstract class StorageFileStream : IReadableStream, IWriteableStream, I
         else if (origin == SeekOrigin.Current) Position += offset;
         else Position = Length + offset;
 
-        return _stream.Seek(offset, origin);
+        return _stream!.Seek(offset, origin);
     }
 
     public void Flush()
     {
-        _stream.Flush();
+        if (_stream != null) _stream.Flush();
     }
 }

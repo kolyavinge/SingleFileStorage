@@ -8,13 +8,6 @@ internal class Segment
 {
     public const uint NullValue = UInt32.MaxValue;
 
-    public static byte PeekState(StorageFileStream storageFileStream)
-    {
-        var state = storageFileStream.ReadByte();
-        storageFileStream.Seek(-1, SeekOrigin.Current);
-        return state;
-    }
-
     public static byte ReadState(StorageFileStream storageFileStream)
     {
         return storageFileStream.ReadByte();
@@ -135,7 +128,7 @@ internal class Segment
     public readonly long EndPosition;
     public readonly long DataStartPosition;
     public bool SaveOnClose;
-    public Segment NextSegment;
+    public Segment? NextSegment;
 
     private Segment(uint index, byte state, uint nextSegmentIndexOrDataLength)
     {

@@ -54,7 +54,7 @@ internal class RecordStream : Stream
         {
             return _storageFileStream.ReadByteArray(buffer, offset + (int)totalIteratedBytes, readAvailableBytes);
         });
-        _currentSegment = _readIterator.LastIteratedSegment;
+        _currentSegment = _readIterator.LastIteratedSegment ?? throw new InvalidOperationException();
         _position += _readIterator.TotalIteratedBytes;
         _lastStorageFileStreamPosition = _storageFileStream.Position;
 
@@ -73,7 +73,7 @@ internal class RecordStream : Stream
             _storageFileStream.WriteByteArray(buffer, offset + (int)totalIteratedBytes, writeAvailableBytes);
             return writeAvailableBytes;
         });
-        _currentSegment = _writeIterator.LastIteratedSegment;
+        _currentSegment = _writeIterator.LastIteratedSegment ?? throw new InvalidOperationException();
         _position += _writeIterator.TotalIteratedBytes + _writeIterator.RemainingBytes;
         if (_writeIterator.RemainingBytes == 0)
         {

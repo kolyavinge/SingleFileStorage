@@ -70,7 +70,7 @@ internal class RecordDescription
         throw new IOException("Cannot find any free record description.");
     }
 
-    public static RecordDescription FindByName(IReadableStream storageDescriptionStream, string recordName)
+    public static RecordDescription? FindByName(IReadableStream storageDescriptionStream, string recordName)
     {
         storageDescriptionStream.Seek(0, SeekOrigin.Begin);
         var recordNameBytes = RecordName.GetBytes(recordName);

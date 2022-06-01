@@ -18,10 +18,10 @@ internal class Storage : IStorage
 
     public Storage(StorageFileStream fileStream)
     {
-        _fileStream = fileStream ?? throw new ArgumentNullException(nameof(fileStream));
+        _fileStream = fileStream;
     }
 
-    public Access AccessMode => _fileStream?.AccessMode ?? Access.Read;
+    public Access AccessMode => _fileStream.AccessMode;
 
     public void Dispose()
     {

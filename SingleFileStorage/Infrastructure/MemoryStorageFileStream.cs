@@ -5,7 +5,7 @@ namespace SingleFileStorage.Infrastructure;
 internal class MemoryStorageFileStream : StorageFileStream
 {
     private byte[] _memoryBuffer = new byte[0];
-    private MemoryStream _memoryStream;
+    private MemoryStream? _memoryStream;
 
     protected override Stream OpenStream(Access access)
     {
@@ -28,7 +28,10 @@ internal class MemoryStorageFileStream : StorageFileStream
 
     public override void Dispose()
     {
-        _memoryBuffer = _memoryStream.ToArray();
+        if (_memoryStream != null)
+        {
+            _memoryBuffer = _memoryStream.ToArray();
+        }
         _memoryStream = null;
         base.Dispose();
     }
