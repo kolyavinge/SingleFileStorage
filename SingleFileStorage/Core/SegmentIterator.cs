@@ -9,7 +9,7 @@ static class SegmentIterator
 {
     public static Segment? GetNextSegment(StorageFileStream storageFileStream, SegmentBuffer segmentBuffer, Segment segment)
     {
-        if (segment.NextSegment != null)
+        if (segment.NextSegment is not null)
         {
             return segment.NextSegment;
         }
@@ -32,7 +32,7 @@ static class SegmentIterator
         {
             action(current);
             current = GetNextSegment(storageFileStream, segmentBuffer, current);
-            if (current == null) return;
+            if (current is null) return;
             storageFileStream.Seek(current.StartPosition, SeekOrigin.Begin);
         }
     }
@@ -41,14 +41,14 @@ static class SegmentIterator
     {
         var iteratedSegments = new List<Segment>();
         var current = GetNextSegment(storageFileStream, segmentBuffer, segment);
-        if (current == null) return iteratedSegments;
+        if (current is null) return iteratedSegments;
         storageFileStream.Seek(current.StartPosition, SeekOrigin.Begin);
         while (true)
         {
             action(current);
             iteratedSegments.Add(current);
             current = GetNextSegment(storageFileStream, segmentBuffer, current);
-            if (current == null) return iteratedSegments;
+            if (current is null) return iteratedSegments;
             storageFileStream.Seek(current.StartPosition, SeekOrigin.Begin);
         }
     }

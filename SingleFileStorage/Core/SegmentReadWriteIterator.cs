@@ -46,7 +46,7 @@ class SegmentReadWriteIterator
                 TotalIteratedBytes += iteratedBytes;
                 if (segment.State == SegmentState.Last) break;
                 var nextSegment = segment.NextSegment ?? SegmentIterator.GetNextSegment(_storageFileStream, _segmentBuffer, segment);
-                if (nextSegment == null) break;
+                if (nextSegment is null) break;
                 segment = nextSegment;
                 _storageFileStream.Seek(segment.DataStartPosition, SeekOrigin.Begin);
             }

@@ -28,7 +28,7 @@ internal class MemoryStorageFileStream : StorageFileStream
 
     public override void Dispose()
     {
-        if (_memoryStream != null)
+        if (_memoryStream is not null)
         {
             _memoryBuffer = _memoryStream.ToArray();
         }

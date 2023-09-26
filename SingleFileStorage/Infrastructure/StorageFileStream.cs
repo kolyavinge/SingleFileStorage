@@ -27,9 +27,9 @@ internal abstract class StorageFileStream : IReadableStream, IWriteableStream, I
 
     public virtual void Dispose()
     {
-        if (_stream != null) _stream.Dispose();
-        if (_reader != null) _reader.Dispose();
-        if (_writer != null) _writer.Dispose();
+        if (_stream is not null) _stream.Dispose();
+        if (_reader is not null) _reader.Dispose();
+        if (_writer is not null) _writer.Dispose();
     }
 
     public byte ReadByte()
@@ -81,6 +81,6 @@ internal abstract class StorageFileStream : IReadableStream, IWriteableStream, I
 
     public void Flush()
     {
-        if (_stream != null) _stream.Flush();
+        if (_stream is not null) _stream.Flush();
     }
 }

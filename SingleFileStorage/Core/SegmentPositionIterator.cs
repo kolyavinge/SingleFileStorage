@@ -22,7 +22,7 @@ static class SegmentPositionIterator
                 if (segment.State == SegmentState.Last) break;
                 remainingBytes -= (int)(segment.EndPosition - storageFileStreamPosition);
                 var nextSegment = segment.NextSegment ?? SegmentIterator.GetNextSegment(storageFileStream, segmentBuffer, segment);
-                if (nextSegment == null) break;
+                if (nextSegment is null) break;
                 segment = nextSegment;
                 storageFileStreamPosition = segment.DataStartPosition;
             }

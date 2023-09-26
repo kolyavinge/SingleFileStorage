@@ -34,7 +34,7 @@ internal class Storage : IStorage
         RecordName.ThrowErrorIfInvalid(recordName);
         var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
         var recordDescription = RecordDescription.FindByName(storageDescriptionStream, recordName);
-        if (recordDescription != null) throw new IOException($"Record '{recordName}' already exists.");
+        if (recordDescription is not null) throw new IOException($"Record '{recordName}' already exists.");
         long freeRecordDescriptionStartPosition = RecordDescription.GetFreeStartPosition(storageDescriptionStream);
         _fileStream.Seek(freeRecordDescriptionStartPosition, SeekOrigin.Begin);
         RecordDescription.WriteState(_fileStream, RecordState.Used);
@@ -63,7 +63,7 @@ internal class Storage : IStorage
         RecordName.ThrowErrorIfInvalid(recordName);
         var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
         var recordDescription = RecordDescription.FindByName(storageDescriptionStream, recordName);
-        if (recordDescription == null) throw new IOException($"Record '{recordName}' does not exist.");
+        if (recordDescription is null) throw new IOException($"Record '{recordName}' does not exist.");
 
         return new RecordStream(_fileStream, recordDescription);
     }
@@ -74,7 +74,7 @@ internal class Storage : IStorage
         var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
         var recordDescription = RecordDescription.FindByName(storageDescriptionStream, recordName);
 
-        return recordDescription != null;
+        return recordDescription is not null;
     }
 
     public void RenameRecord(string oldRecordName, string newRecordName)
@@ -84,9 +84,9 @@ internal class Storage : IStorage
         RecordName.ThrowErrorIfInvalid(newRecordName);
         var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
         var oldRecordDescription = RecordDescription.FindByName(storageDescriptionStream, oldRecordName);
-        if (oldRecordDescription == null) throw new IOException($"Record '{oldRecordName}' does not exist.");
+        if (oldRecordDescription is null) throw new IOException($"Record '{oldRecordName}' does not exist.");
         var newRecordDescription = RecordDescription.FindByName(storageDescriptionStream, newRecordName);
-        if (newRecordDescription != null) throw new IOException($"Record '{newRecordName}' already exists.");
+        if (newRecordDescription is not null) throw new IOException($"Record '{newRecordName}' already exists.");
         _fileStream.Seek(oldRecordDescription.StartPosition + SizeConstants.RecordState, SeekOrigin.Begin);
         RecordDescription.WriteName(_fileStream, newRecordName);
     }
@@ -97,7 +97,7 @@ internal class Storage : IStorage
         RecordName.ThrowErrorIfInvalid(recordName);
         var storageDescriptionStream = StorageDescription.GetStorageDescription(_fileStream);
         var recordDescription = RecordDescription.FindByName(storageDescriptionStream, recordName);
-        if (recordDescription == null) throw new IOException($"Record '{recordName}' does not exist.");
+        if (recordDescription is null) throw new IOException($"Record '{recordName}' does not exist.");
         _fileStream.Seek(recordDescription.StartPosition, SeekOrigin.Begin);
         RecordDescription.WriteState(_fileStream, RecordState.Free);
         var firstSegment = Segment.GotoSegmentStartPositionAndCreate(_fileStream, recordDescription.FirstSegmentIndex);
